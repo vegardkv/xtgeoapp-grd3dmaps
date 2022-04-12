@@ -23,15 +23,13 @@ def aggregate_maps(
 ):
     # TODO: This function needs clean-up, but seems to work as intended now.
     # TODO: write proper docstring. May want to remove type hints? (depends on repo)
-    # TODO: nans are filtered, but may want to remove according to GridProperty.undef as
-    #  well, and possibly also inf?
     # Determine inactive cells
     active = grid.actnum_array.flatten().astype(bool)
     props = [p.values1d[active] for p in grid_props]
-    all_nan = np.all([np.isnan(p) for p in props], axis=0)
-    active[active] = ~all_nan
-    props = [p[~all_nan] for p in props]
-    excludes = [None if ex is None else ex[~all_nan] for ex in excludes]
+    all_masked = np.all([p.mask for p in props], axis=0)
+    active[active] = ~all_masked
+    props = [p[~all_masked] for p in props]
+    excludes = [None if ex is None else ex[~all_masked] for ex in excludes]
     # Find cell boxes and pixel nodes
     boxes = _cell_boxes(grid, active)
     if isinstance(map_template, xtgeo.RegularSurface):
@@ -123,8 +121,8 @@ def _property_to_map(
     rows, cols = connections
     assert rows.shape == cols.shape
     data = prop[cols]
-    if np.isnan(data).any():
-        invalid = np.isnan(data)
+    if data.mask.any():
+        invalid = data.mask
         rows = rows[~invalid]
         cols = cols[~invalid]
         data = data[~invalid]

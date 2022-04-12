@@ -111,10 +111,8 @@ def extract_properties(property_spec: List[Property]) -> List[xtgeo.GridProperty
         except (RuntimeError, ValueError):
             props = [xtgeo.gridproperty_from_file(spec.source, name=spec.name)]
         if spec.lower_threshold is not None:
-            # TODO: this should ignore these values during aggregation, but a more
-            #  appropriate approach is perhaps to use undef or mask
             for p in props:
-                p.values[p.values < spec.lower_threshold] = np.nan
+                p.values.mask[p.values < spec.lower_threshold] = True
         # Temporary workaround. TODO: remove
         for p in props:
             if p.date is None and "--" in spec.source:

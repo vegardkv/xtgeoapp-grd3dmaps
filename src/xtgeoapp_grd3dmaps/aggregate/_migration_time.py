@@ -20,9 +20,6 @@ def generate_migration_time_property(
     for co2, t in zip(co2_props, time_since_start):
         above_threshold = co2.values > co2_threshold
         t_prop.values[above_threshold] = np.minimum(t_prop.values[above_threshold], t)
-    # Use nan instead of inf
-    t_prop.values[np.isinf(t_prop.values)] = np.nan
-    # TODO: more appropriately:
-    # t_prop.values[np.isinf(t_prop.values)] = t_prop.undef
-    # t_prop.mask_undef()
+    # Mask inf values
+    t_prop.values.mask[np.isinf(t_prop.values)] = 1
     return t_prop
