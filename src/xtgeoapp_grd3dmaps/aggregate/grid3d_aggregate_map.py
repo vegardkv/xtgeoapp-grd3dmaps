@@ -32,7 +32,10 @@ def write_plot(xn, yn, map_, filename):
 def create_map_template(map_settings: _config.MapSettings) -> Union[xtgeo.RegularSurface, float]:
     # TODO: possible duplicate of existing functionality
     if map_settings.templatefile is not None:
-        return xtgeo.surface_from_file(map_settings.templatefile)
+        surf = xtgeo.surface_from_file(map_settings.templatefile)
+        if surf.rotation != 0.0:
+            raise NotImplementedError("Rotated surfaces are not handled correctly yet")
+        return surf
     elif map_settings.xori is not None:
         return xtgeo.RegularSurface(
             ncol=map_settings.ncol,
