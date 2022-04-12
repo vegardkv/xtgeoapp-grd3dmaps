@@ -2,6 +2,7 @@ import pathlib
 import sys
 from typing import Union
 import xtgeo
+from xtgeo.common import XTGeoDialog
 from ._config import (
     extract_properties,
     extract_filters,
@@ -11,6 +12,9 @@ from . import (
     _grid_aggregation,
     _config,
 )
+
+
+_XTG = XTGeoDialog()
 
 
 def write_map(xn, yn, map_, filename):
@@ -59,17 +63,17 @@ def generate_maps(
     map_settings,
     plot_directory
 ):
-    print("*** Reading Grid ***")
+    _XTG.say("Reading Grid")
     grid = xtgeo.grid_from_file(grid_name)
-    print("*** Reading properties ***")
+    _XTG.say("Reading properties")
     properties = extract_properties(property_spec)
-    print("*** Reading Zones ***")
+    _XTG.say("Reading Zones")
     _filters = [("all", None)]
     if filter_spec is not None:
         _filters += extract_filters(filter_spec, grid.actnum_indices)
-    print("*** Setting up map template ***")
+    _XTG.say("Setting up map template")
     map_template = create_map_template(map_settings)
-    print("*** Generating Property Maps ***")
+    _XTG.say("Generating Property Maps")
     xn, yn, p_maps = _grid_aggregation.aggregate_maps(
         map_template,
         grid,
@@ -77,12 +81,10 @@ def generate_maps(
         [f[1] for f in _filters],
         agg_method,
     )
-    assert len(p_maps) == len(_filters)
-    for filter_, f_maps in zip(_filters, p_maps):
+    for filter_, f_maps in zip(_filters, p_maps, strict=True):
         f_name = filter_[0]
-        assert len(f_maps) == len(properties)
         # Max saturation maps
-        for prop, map_ in zip(properties, f_maps):
+        for prop, map_ in zip(properties, f_maps, strict=True):
             fn = f"{f_name}--{agg_method.value}_{prop.name}"
             if prop.date:
                 fn += f"--{prop.date}"
