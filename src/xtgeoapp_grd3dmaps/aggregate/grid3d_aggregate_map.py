@@ -24,7 +24,9 @@ def write_map(xn, yn, map_, filename):
 
 def write_plot(xn, yn, map_, filename):
     import plotly.express as px
-    px.imshow(map_.T, x=xn, y=yn).write_html(filename, include_plotlyjs="cdn")
+    px.imshow(
+        map_.T, x=xn, y=yn, origin="lower"
+    ).write_html(filename, include_plotlyjs="cdn")
 
 
 def create_map_template(map_settings: _config.MapSettings) -> Union[xtgeo.RegularSurface, float]:
