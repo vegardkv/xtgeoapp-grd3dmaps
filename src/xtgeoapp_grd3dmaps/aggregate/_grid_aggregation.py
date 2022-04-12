@@ -46,7 +46,6 @@ def aggregate_maps(
     # Iterate filters
     results = []
     for excl in tqdm.tqdm(excludes, desc="Iterating exclude filters"):
-        # TODO: Layer information is completely ignored
         rows0, cols0 = connections
         if excl is not None:
             to_remove = ~np.isin(connections[1], np.argwhere(excl).flatten())

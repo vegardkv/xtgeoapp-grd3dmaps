@@ -19,6 +19,7 @@ def write_map(xn, yn, map_, filename):
     surface = xtgeo.RegularSurface(
         ncol=xn.size, nrow=yn.size, xinc=dx, yinc=dy, xori=xn[0], yori=yn[0], values=map_
     )
+    # TODO: should mask map_ instead of using nans where values are undefined?
     surface.to_file(filename)
 
 
