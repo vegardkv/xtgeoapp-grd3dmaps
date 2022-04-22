@@ -6,6 +6,9 @@ import argparse
 import sys
 import glob
 from typing import Optional
+
+import xtgeo
+
 from . import _config
 from . import _migration_time
 
@@ -14,12 +17,14 @@ def calculate_migration_time_property(
     properties_files: str,
     property_name: Optional[str],
     lower_threshold: float,
+    grid_file: Optional[str],
 ):
     prop_spec = [
         _config.Property(source=f)
         for f in glob.glob(properties_files, recursive=True)
     ]
-    properties = _config.extract_properties(prop_spec)
+    grid = None if grid_file is None else xtgeo.grid_from_file(grid_file)
+    properties = _config.extract_properties(prop_spec, grid)
     if property_name is not None:
         properties = [p for p in properties if p.name == property_name]
     t_prop = _migration_time.generate_migration_time_property(properties, lower_threshold)
@@ -52,6 +57,10 @@ def make_parser():
         help="Lower threshold for defining when migration has occured",
         default=1e-6,
         type=float,
+    )
+    parser.add_argument(
+        "--grid",
+        help="Path to grid file (required if property is part of an UNRST file)",
     )
     return parser
 

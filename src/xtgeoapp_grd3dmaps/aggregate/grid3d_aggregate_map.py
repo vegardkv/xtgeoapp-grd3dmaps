@@ -66,7 +66,7 @@ def generate_maps(
     _XTG.say("Reading Grid")
     grid = xtgeo.grid_from_file(grid_name)
     _XTG.say("Reading properties")
-    properties = extract_properties(property_spec)
+    properties = extract_properties(property_spec, grid)
     _XTG.say("Reading Zones")
     _filters = [("all", None)]
     if filter_spec is not None:
@@ -81,13 +81,14 @@ def generate_maps(
         [f[1] for f in _filters],
         agg_method,
     )
-    for filter_, f_maps in zip(_filters, p_maps, strict=True):
+    assert len(_filters) == len(p_maps)
+    for filter_, f_maps in zip(_filters, p_maps):
         f_name = filter_[0]
         # Max saturation maps
-        for prop, map_ in zip(properties, f_maps, strict=True):
-            fn = f"{f_name}--{agg_method.value}_{prop.name}"
-            if prop.date:
-                fn += f"--{prop.date}"
+        assert len(properties) == len(f_maps)
+        for prop, map_ in zip(properties, f_maps):
+            # TODO: verify namestyle
+            fn = f"{f_name}--{agg_method.value}_{prop.name.replace('_', '--')}"
             fn += ".gri"
             write_map(xn, yn, map_, pathlib.Path(output_directory) / fn)
             if plot_directory:
@@ -100,6 +101,10 @@ def main(arguments):
     # TODO: try to use configparser for this to the extent possible
     args = process_args(arguments)
     config = _config.Root.from_yaml(args.config)
+    if args.mapfolder is not None:
+        config.output.mapfolder = args.mapfolder
+    if args.plotfolder is not None:
+        config.output.plotfolder = args.plotfolder
     generate_maps(
         config.input.grid,
         config.input.properties,

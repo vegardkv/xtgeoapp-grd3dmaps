@@ -1,0 +1,13 @@
+input:
+  grid: "tests/data/reek/REEK.EGRID"
+  properties:
+    - source: "tests/data/reek/REEK.UNRST"
+      name: "SWAT"
+      lower_threshold: 1e-12
+
+filters:
+  - source: "tests/data/reek/reek_sim_zone.roff"
+
+output:
+  mapfolder: tmp
+  plotfolder: tmp

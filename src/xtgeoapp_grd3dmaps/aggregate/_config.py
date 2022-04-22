@@ -101,13 +101,15 @@ class Root:
 # TODO: move functions below to a separate module?
 
 
-def extract_properties(property_spec: List[Property]) -> List[xtgeo.GridProperty]:
+def extract_properties(property_spec: List[Property], grid: Optional[xtgeo.Grid]) -> List[xtgeo.GridProperty]:
     # TODO: need explicit handling of dates?
     properties = []
     for spec in property_spec:
         try:
             names = "all" if spec.name is None else [spec.name]
-            props = xtgeo.gridproperties_from_file(spec.source, names=names).props
+            props = xtgeo.gridproperties_from_file(
+                spec.source, names=names, grid=grid, dates="all",
+            ).props
         except (RuntimeError, ValueError):
             props = [xtgeo.gridproperty_from_file(spec.source, name=spec.name)]
         if spec.lower_threshold is not None:
@@ -118,10 +120,12 @@ def extract_properties(property_spec: List[Property]) -> List[xtgeo.GridProperty
             if p.date is None and "--" in spec.source:
                 d = pathlib.Path(spec.source.split("--")[-1]).stem
                 try:
-                    datetime.datetime.strptime(d, "%Y%m%d")  # Make
+                    # Make sure time stamp is on a valid format
+                    datetime.datetime.strptime(d, "%Y%m%d")
                 except ValueError:
                     continue
                 p.date = d
+                p.name += f"--{d}"
         # ---
         properties += props
     return properties
@@ -144,4 +148,6 @@ def extract_filters(filter_spec: List[Filter], actnum: np.ndarray) -> List[Tuple
 def process_args(arguments):
     parser = argparse.ArgumentParser(__file__)
     parser.add_argument("--config", help="Path to a YAML config file")
+    parser.add_argument("--mapfolder", help="Path to output map folder (overrides yaml file)")
+    parser.add_argument("--plotfolder", help="Path to output plot folder (overrides yaml file)")
     return parser.parse_args(arguments)
