@@ -52,8 +52,8 @@ def aggregate_maps(
     # Find cell boxes and pixel nodes
     boxes = _cell_boxes(grid, active)
     if isinstance(map_template, xtgeo.RegularSurface):
-        x_nodes = map_template.xori + map_template.xinc * np.arange(0, map_template.ncol)
-        y_nodes = map_template.yori + map_template.yinc * np.arange(0, map_template.nrow)
+        x_nodes = map_template.xori + map_template.xinc * np.arange(0, map_template.ncol, dtype=float)
+        y_nodes = map_template.yori + map_template.yinc * np.arange(0, map_template.nrow, dtype=float)
     else:
         x_nodes, y_nodes = _derive_map_nodes(boxes, pixel_to_cell_size_ratio=map_template)
     # Find connections
