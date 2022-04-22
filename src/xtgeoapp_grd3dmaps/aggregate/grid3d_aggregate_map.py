@@ -2,6 +2,7 @@ import pathlib
 import sys
 from typing import Union
 import xtgeo
+import numpy as np
 from xtgeo.common import XTGeoDialog
 from ._config import (
     extract_properties,
@@ -20,10 +21,11 @@ _XTG = XTGeoDialog()
 def write_map(xn, yn, map_, filename):
     dx = xn[1] - xn[0]
     dy = yn[1] - yn[0]
+    masked_map = np.ma.array(map_)
+    masked_map.mask = np.isnan(map_)
     surface = xtgeo.RegularSurface(
-        ncol=xn.size, nrow=yn.size, xinc=dx, yinc=dy, xori=xn[0], yori=yn[0], values=map_
+        ncol=xn.size, nrow=yn.size, xinc=dx, yinc=dy, xori=xn[0], yori=yn[0], values=masked_map
     )
-    # TODO: should mask map_ instead of using nans where values are undefined?
     surface.to_file(filename)
 
 

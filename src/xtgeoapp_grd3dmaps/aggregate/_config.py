@@ -102,7 +102,6 @@ class Root:
 
 
 def extract_properties(property_spec: List[Property], grid: Optional[xtgeo.Grid]) -> List[xtgeo.GridProperty]:
-    # TODO: need explicit handling of dates?
     properties = []
     for spec in property_spec:
         try:
