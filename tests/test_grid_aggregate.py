@@ -44,17 +44,18 @@ _DEFAULT_ARGS = dict(
     map_template=1.0,
     grid=_EXAMPLE_GRID,
     grid_props=[_EXAMPLE_PROP],
-    excludes=[None],
+    inclusion_filters=[None],
     method=AggregationMethod.max,
 )
 
 
 def test_default_testing_args():
     xn, yn, maps = aggregate_maps(**_DEFAULT_ARGS)
+    map_ = maps[0][0]
     assert xn.size == 20
     assert yn.size == 12
-    assert maps.shape == (20, 12)
-    npt.assert_array_equal(maps[0], _EXAMPLE_PROP.values[:, :, 1])
+    assert map_.shape == (20, 12)
+    npt.assert_allclose(map_, _EXAMPLE_PROP.values[:, :, 1], atol=1e-12, rtol=0)
 
 
 def test_surface_template():
@@ -68,9 +69,10 @@ def test_surface_template():
     )
     kwargs = {**_DEFAULT_ARGS, 'map_template': surf}
     xn, yn, maps = aggregate_maps(**kwargs)
+    map_ = maps[0][0]
     assert xn.size == surf.ncol
     assert yn.size == surf.nrow
-    npt.assert_array_equal(maps[0], _EXAMPLE_PROP.values[:, :, 1])
+    npt.assert_allclose(map_, _EXAMPLE_PROP.values[:, :, 1], atol=1e-12, rtol=0)
 
 
 def test_with_exclusions():
@@ -81,25 +83,32 @@ def test_with_exclusions():
     excludes[3][:, :6, :] = 0
     excludes[4][:10, :6, :] = 0
     excludes[4] = ~excludes[4]
-    kwargs = {**_DEFAULT_ARGS, 'excludes': excludes}
+    includes = [~ex.flatten() for ex in excludes]
+    kwargs = {**_DEFAULT_ARGS, 'inclusion_filters': includes}
     _, _, maps = aggregate_maps(**kwargs)
-    npt.assert_array_equal(maps[0], _EXAMPLE_PROP.values[:, :, 0])
-    npt.assert_array_equal(maps[1], _EXAMPLE_PROP.values[:, :, 1])
-    npt.assert_array_equal(maps[2], _EXAMPLE_PROP.values[:, :, 2])  # TODO: Better to verify all masked/nan?
-    npt.assert_array_equal(maps[3][:, :6, :], _EXAMPLE_PROP.values[:, :6, 1])
-    assert np.all(np.isnan(maps[3][excludes[3][:, :, 0]]))  # TODO: mask-check instead of nan?
-    npt.assert_array_equal(maps[4][:10, :6, :], _EXAMPLE_PROP.values[:10, :6, 1])
-    assert np.all(np.isnan(maps[4][excludes[4][:, :, 0]]))  # TODO: mask-check instead of nan?
+    tols = dict(atol=1e-12, rtol=0)
+    npt.assert_allclose(maps[0][0], _EXAMPLE_PROP.values[:, :, 0], **tols)
+    npt.assert_allclose(maps[1][0], _EXAMPLE_PROP.values[:, :, 1], **tols)
+    assert np.all(np.isnan(maps[2][0]))
+    npt.assert_allclose(maps[3][0][:, :6], _EXAMPLE_PROP.values[:, :6, 1], **tols)
+    assert np.all(np.isnan(maps[3][0][excludes[3][:, :, 0]]))
+    npt.assert_allclose(
+        maps[4][0][~excludes[4][:, :, 0]],
+        _EXAMPLE_PROP.values[:, :, 1][~excludes[4][:, :, 0]],
+        **tols
+    )
+    assert np.all(np.isnan(maps[4][0][excludes[4][:, :, 0]]))
 
 
 def test_mean_method():
     kwargs = {**_DEFAULT_ARGS, 'method': AggregationMethod.mean}
     _, _, maps = aggregate_maps(**kwargs)
-    assert np.all(maps[0] <= _EXAMPLE_PROP.values[:, :, 1])
-    assert np.all(maps[0] >= _EXAMPLE_PROP.values[:, :, 0])
+    map_ = maps[0][0]
+    assert np.all(map_ <= _EXAMPLE_PROP.values[:, :, 1])
+    assert np.all(map_ >= _EXAMPLE_PROP.values[:, :, 0])
 
 
 def test_min_method():
     kwargs = {**_DEFAULT_ARGS, 'method': AggregationMethod.min}
     _, _, maps = aggregate_maps(**kwargs)
-    npt.assert_array_equal(maps[0], _EXAMPLE_PROP.values[:, :, 0])
+    npt.assert_allclose(maps[0][0], _EXAMPLE_PROP.values[:, :, 0], atol=1e-12, rtol=0)

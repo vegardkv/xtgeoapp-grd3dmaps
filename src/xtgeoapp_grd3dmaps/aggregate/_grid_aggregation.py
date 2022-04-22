@@ -18,9 +18,9 @@ def aggregate_maps(
     map_template: Union[xtgeo.RegularSurface, float],
     grid: xtgeo.Grid,
     grid_props: List[xtgeo.GridProperty],
-    excludes: List[Optional[np.ndarray]],
+    inclusion_filters: List[Optional[np.ndarray]],
     method: AggregationMethod,
-):
+) -> Tuple[np.ndarray, np.ndarray, List[List[np.ndarray]]]:
     # TODO: This function needs clean-up, but seems to work as intended now.
     # TODO: write proper docstring. May want to remove type hints? (depends on repo)
     # Determine inactive cells
@@ -29,7 +29,10 @@ def aggregate_maps(
     all_masked = np.all([p.mask for p in props], axis=0)
     active[active] = ~all_masked
     props = [p[~all_masked] for p in props]
-    excludes = [None if ex is None else ex[~all_masked] for ex in excludes]
+    inclusion_filters = [
+        None if inc is None else inc[~all_masked]
+        for inc in inclusion_filters
+    ]
     # Find cell boxes and pixel nodes
     boxes = _cell_boxes(grid, active)
     if isinstance(map_template, xtgeo.RegularSurface):
@@ -45,10 +48,10 @@ def aggregate_maps(
     )
     # Iterate filters
     results = []
-    for excl in tqdm.tqdm(excludes, desc="Iterating exclude filters"):
+    for incl in tqdm.tqdm(inclusion_filters, desc="Iterating inclusion filters"):
         rows0, cols0 = connections
-        if excl is not None:
-            to_remove = ~np.isin(connections[1], np.argwhere(excl).flatten())
+        if incl is not None:
+            to_remove = ~np.isin(connections[1], np.argwhere(incl).flatten())
             rows0 = rows0[~to_remove]
             cols0 = cols0[~to_remove]
         results.append([])
@@ -67,8 +70,8 @@ def _derive_map_nodes(boxes, pixel_to_cell_size_ratio):
     box = np.min(boxes[0]), np.min(boxes[1]), np.max(boxes[2]), np.max(boxes[3])
     res = np.mean([np.mean(boxes[2] - boxes[0]), np.mean(boxes[3] - boxes[1])])
     res /= pixel_to_cell_size_ratio
-    x_nodes = np.arange(box[0], box[2], res)
-    y_nodes = np.arange(box[1], box[3], res)
+    x_nodes = np.arange(box[0] + res / 2, box[2] - res / 2 + 1e-12, res)
+    y_nodes = np.arange(box[1] + res / 2, box[3] - res / 2 + 1e-12, res)
     return x_nodes, y_nodes
 
 
@@ -86,8 +89,8 @@ def _connect_grid_and_map(
     #  we keep this, or implement alternatives + config options?
     x_mesh, y_mesh = np.meshgrid(x_nodes, y_nodes, indexing="ij")
     within = (
-        (x_mesh.flatten()[:, np.newaxis] > boxes[0][np.newaxis, :]) &
-        (y_mesh.flatten()[:, np.newaxis] > boxes[1][np.newaxis, :]) &
+        (x_mesh.flatten()[:, np.newaxis] >= boxes[0][np.newaxis, :]) &
+        (y_mesh.flatten()[:, np.newaxis] >= boxes[1][np.newaxis, :]) &
         (x_mesh.flatten()[:, np.newaxis] < boxes[2][np.newaxis, :]) &
         (y_mesh.flatten()[:, np.newaxis] < boxes[3][np.newaxis, :])
     )
@@ -146,16 +149,17 @@ def _property_to_map(
     ).tocsc().sum(axis=1)
     # Make sure to shift data to avoid
     if method == AggregationMethod.max:
-        res = sarr.max(axis=1)
+        res = sarr.max(axis=1).toarray()
     elif method == AggregationMethod.min:
-        res = sarr.min(axis=1)
+        res = sarr.min(axis=1).toarray()
     elif method == AggregationMethod.mean:
         div = np.where(count > 0, count, 1)  # Avoid division by zero
         res = sarr.sum(axis=1) / div
+        res = np.asarray(res)
     else:
         raise NotImplementedError
     count = np.array(count).flatten()
-    res = res.toarray().flatten() + shift
+    res = res.flatten() + shift
     res[count == 0] = np.nan
     res = res.reshape(nx, ny)
     return res
