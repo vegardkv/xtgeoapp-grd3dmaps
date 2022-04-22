@@ -21,18 +21,34 @@ def aggregate_maps(
     inclusion_filters: List[Optional[np.ndarray]],
     method: AggregationMethod,
 ) -> Tuple[np.ndarray, np.ndarray, List[List[np.ndarray]]]:
-    # TODO: This function needs clean-up, but seems to work as intended now.
-    # TODO: write proper docstring. May want to remove type hints? (depends on repo)
-    # Determine inactive cells
+    """
+    Aggregate multiple grid properties, using multiple grid cell filters, to 2D maps.
+
+    Args:
+        map_template: Template to use for the generated maps. If a float is provided, it
+            will be used as an approximate pixel-to-cell-size ratio to automatically set
+            map bounds and resolution from the grid.
+        grid: The 3D grid
+        grid_props: List of the grid properties to be aggregated
+        inclusion_filters: List containing the grid cell filters. A filter is defined by
+            either a numpy array or `None`. If a numpy array is used, it must be a boolean
+            1D array representing which cells (among the active cells) that are to be
+            included. A `1` indicates inclusion. If `None` is provided, all of the grid
+            cells are included.
+        method: The aggregation method to apply for pixels that overlap more than one grid
+            cell in the xy-plane
+
+    Returns:
+        Doubly nested list of maps. The first index corresponds to `ìnclusion_filters`,
+        and the second index to `grid_props`.
+    """
+    # TODO: May want to remove type hints? (depends on repo)
+    # Determine cells where properties are always masked
     active = grid.actnum_array.flatten().astype(bool)
     props = [p.values1d[active] for p in grid_props]
-    all_masked = np.all([p.mask for p in props], axis=0)
-    active[active] = ~all_masked
-    props = [p[~all_masked] for p in props]
-    inclusion_filters = [
-        None if inc is None else inc[~all_masked]
-        for inc in inclusion_filters
-    ]
+    props, active, inclusion_filters = _remove_where_all_props_are_masked(
+        props, active, inclusion_filters
+    )
     # Find cell boxes and pixel nodes
     boxes = _cell_boxes(grid, active)
     if isinstance(map_template, xtgeo.RegularSurface):
@@ -64,6 +80,21 @@ def aggregate_maps(
                 method,
             ))
     return x_nodes, y_nodes, results
+
+
+def _remove_where_all_props_are_masked(
+    props,
+    active,
+    inclusion_filters,
+):
+    all_masked = np.all([p.mask for p in props], axis=0)
+    active[active] = ~all_masked
+    props = [p[~all_masked] for p in props]
+    inclusion_filters = [
+        None if inc is None else inc[~all_masked]
+        for inc in inclusion_filters
+    ]
+    return props, active, inclusion_filters
 
 
 def _derive_map_nodes(boxes, pixel_to_cell_size_ratio):
