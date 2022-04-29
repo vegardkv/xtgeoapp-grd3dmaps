@@ -71,6 +71,7 @@ def main(arguments):
         parsed_args.properties,
         parsed_args.name,
         parsed_args.threshold,
+        parsed_args.grid,
     )
     t_prop.to_file(parsed_args.output_file)
 
