@@ -20,13 +20,11 @@ def calculate_migration_time_property(
     grid_file: Optional[str],
 ):
     prop_spec = [
-        _config.Property(source=f)
+        _config.Property(source=f, name=property_name)
         for f in glob.glob(properties_files, recursive=True)
     ]
     grid = None if grid_file is None else xtgeo.grid_from_file(grid_file)
     properties = _config.extract_properties(prop_spec, grid)
-    if property_name is not None:
-        properties = [p for p in properties if p.name == property_name]
     t_prop = _migration_time.generate_migration_time_property(properties, lower_threshold)
     return t_prop
 
