@@ -12,6 +12,7 @@ class AggregationMethod(Enum):
     max = "max"
     min = "min"
     mean = "mean"
+    sum = "sum"
 
 
 def aggregate_maps(
@@ -168,7 +169,7 @@ def _property_to_map(
         shift = data.min() - 1
     elif method == AggregationMethod.min:
         shift = data.max() + 1
-    elif method == AggregationMethod.mean:
+    elif method in (AggregationMethod.mean, AggregationMethod.sum):
         shift = 0.0
     else:
         raise NotImplementedError
@@ -187,6 +188,8 @@ def _property_to_map(
         div = np.where(count > 0, count, 1)  # Avoid division by zero
         res = sarr.sum(axis=1) / div
         res = np.asarray(res)
+    elif method == AggregationMethod.sum:
+        res = np.asarray(sarr.sum(axis=1))
     else:
         raise NotImplementedError
     count = np.array(count).flatten()
