@@ -15,6 +15,7 @@ def generate_migration_time_property(
     ]
     time_since_start = [(t - times[0]).days / 365 for t in times]
     # Duplicate first property to ensure equal actnum
+    # TODO: expose property name. At a minimum as a non-anonymous variable.
     t_prop = co2_props[0].copy('MigrationTime')
     t_prop.values[~t_prop.values.mask] = np.inf
     for co2, t in zip(co2_props, time_since_start):
