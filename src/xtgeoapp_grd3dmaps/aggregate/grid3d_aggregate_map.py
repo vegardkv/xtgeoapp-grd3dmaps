@@ -99,14 +99,7 @@ def generate_maps(
                 write_plot(xn, yn, map_, pn)
 
 
-def main(arguments):
-    # TODO: try to use configparser for this to the extent possible
-    args = process_args(arguments)
-    config = _config.Root.from_yaml(args.config)
-    if args.mapfolder is not None:
-        config.output.mapfolder = args.mapfolder
-    if args.plotfolder is not None:
-        config.output.plotfolder = args.plotfolder
+def generate_from_config(config: _config.Root):
     generate_maps(
         config.input.grid,
         config.input.properties,
@@ -116,6 +109,17 @@ def main(arguments):
         config.mapsettings,
         config.output.plotfolder,
     )
+
+
+def main(arguments):
+    # TODO: try to use configparser for this to the extent possible
+    args = process_args(arguments)
+    config = _config.Root.from_yaml(args.config)
+    if args.mapfolder is not None:
+        config.output.mapfolder = args.mapfolder
+    if args.plotfolder is not None:
+        config.output.plotfolder = args.plotfolder
+    generate_from_config(config)
 
 
 if __name__ == '__main__':
