@@ -1,3 +1,6 @@
+"""
+This is probably better suited as part of a different repo than xtgeoapp_grd3dmaps
+"""
 import pandas
 import xtgeo
 import argparse
