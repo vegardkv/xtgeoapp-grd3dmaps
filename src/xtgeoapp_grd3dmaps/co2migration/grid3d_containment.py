@@ -35,10 +35,15 @@ def calculate_out_of_bounds_co2(grid_file, unrst_file, init_file, polygon_file):
     print("*** Reading Grid ***")
     grid = xtgeo.grid_from_file(grid_file)
     print("*** Reading Properties ***")
-    sgas = [
-        xtgeo.gridproperty_from_file(f, grid=grid, name="SGAS")
-        for f in glob.glob(unrst_file)
-    ]
+    if unrst_file.lower().endswith('.unrst'):
+        sgas = xtgeo.gridproperties_from_file(
+            unrst_file, grid=grid, names=["SGAS"], dates="all"
+        )
+    else:
+        sgas = [
+            xtgeo.gridproperty_from_file(f, grid=grid, name="SGAS")
+            for f in glob.glob(unrst_file)
+        ]
     for s in sgas:
         if s.date is None and "--" in s.filesrc.stem:
             s.date = s.filesrc.stem.split('--')[1]

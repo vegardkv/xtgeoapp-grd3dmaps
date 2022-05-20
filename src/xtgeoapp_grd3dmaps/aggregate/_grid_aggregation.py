@@ -176,8 +176,8 @@ def _find_overlaps(nodes, lower_bounds, upper_bounds):
     # np.searchsorted can be used to achieve the same, but is potentially slower?
     ori = nodes[0]
     step = nodes[1] - nodes[0]
-    i0 = np.ceil(((lower_bounds - ori) / step)).astype(np.int)
-    i1 = np.ceil(((upper_bounds - ori) / step)).astype(np.int)
+    i0 = np.ceil(((lower_bounds - ori) / step)).astype(int)
+    i1 = np.ceil(((upper_bounds - ori) / step)).astype(int)
     i0 = np.maximum(np.minimum(i0, nodes.size), 0)
     i1 = np.maximum(np.minimum(i1, nodes.size), 0)
     lengths = i1 - i0
