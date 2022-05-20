@@ -148,11 +148,9 @@ def _extract_all_overlaps(i0, i_range, j0, j_range):
     indices = []
     for ni in range(1, i_range.max() + 1):
         for nj in range(1, j_range.max() + 1):
-
             ix = (i_range == ni) & (j_range == nj)
             if ix.sum() == 0:
                 continue
-            n_tot = ni * nj
             __i0 = i0[ix]
             __j0 = j0[ix]
             for qi in range(ni):
@@ -160,23 +158,14 @@ def _extract_all_overlaps(i0, i_range, j0, j_range):
                     i = __i0 + qi
                     j = __j0 + qj
                     ij_pairs.append(np.column_stack((i, j)))
-            indices.append(np.kron(np.ones(n_tot, dtype=int), np.argwhere(ix).flatten()))
-            # TODO: If the above is a computational bottleneck, the following works as
-            #  well, but is less readable:
-            # i = np.repeat(__i0, n_tot) + np.kron(
-            #     np.ones_like(__i0), np.kron(np.ones(nj, dtype=int), np.arange(ni))
-            # )
-            # j = np.repeat(__j0, n_tot) + np.kron(
-            #     np.ones_like(__j0), np.kron(np.arange(nj), np.ones(ni, dtype=int))
-            # )
-            # ij_pairs.append(np.column_stack((i, j)))
-            # indices.append(np.repeat(np.argwhere(ix).flatten(), n_tot))
+            n_tot = ni * nj
+            indices.append(np.kron(
+                np.ones(n_tot, dtype=int), np.argwhere(ix).flatten()
+            ))
     return np.vstack(ij_pairs), np.hstack(indices)
 
 
 def _find_overlapped_nodes(nodes, cell_lower, cell_upper):
-    # TODO: can be replaced by a more efficient method that utilizes that nodes is
-    #  equi-spaced, but the alternative method is less readable.
     i0 = np.searchsorted(nodes, cell_lower)
     i1 = np.searchsorted(nodes, cell_upper)
     lengths = i1 - i0
