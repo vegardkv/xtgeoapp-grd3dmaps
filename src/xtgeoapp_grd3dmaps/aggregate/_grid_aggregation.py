@@ -119,6 +119,25 @@ def _connect_grid_and_map(
     """
     # TODO: This method is based on an approximation of cell footprints by boxes. Should
     #  we keep this, or implement alternatives + config options?
+    row_col = _legacy(x_nodes, y_nodes, boxes)
+    # ---
+    i0, i_range = _find_overlaps(x_nodes, boxes[0], boxes[2])
+    j0, j_range = _find_overlaps(y_nodes, boxes[1], boxes[3])
+    invalid = (i_range == 0) | (j_range == 0)
+    i0, i_range = i0[~invalid], i_range[~invalid]
+    j0, j_range = j0[~invalid], j_range[~invalid]
+    # ---
+    ij_pairs, box_indices = _box_product(i0, i_range, j0, j_range)
+    rows = np.ravel_multi_index(ij_pairs.T, (x_nodes.size, y_nodes.size))
+    cols = box_indices
+    row_col2 = rows, cols  # TODO: sort?
+    return row_col2
+
+
+def _legacy(x_nodes, y_nodes, boxes):
+    # TODO: Remove. May want to keep as documentation for _connect_grid_and_map, since it
+    #  is more reabable than the implementation
+    # Keep the following as documentation?
     x_mesh, y_mesh = np.meshgrid(x_nodes, y_nodes, indexing="ij")
     within = (
         (x_mesh.flatten()[:, np.newaxis] >= boxes[0][np.newaxis, :]) &
@@ -128,6 +147,41 @@ def _connect_grid_and_map(
     )
     row_col = np.where(within)
     return row_col
+
+
+def _box_product(i0, i_range, j0, j_range):
+    ij_pairs = []
+    indexes = []
+    # Utilizing np.unique may be faster?
+    for ni in range(1, i_range.max() + 1):
+        for nj in range(1, j_range.max() + 1):
+            ix = (i_range == ni) & (j_range == nj)
+            if ix.sum() == 0:
+                continue
+            n_tot = ni * nj
+            __i0 = i0[ix]
+            __j0 = j0[ix]
+            i = np.repeat(__i0, n_tot) + np.kron(np.ones_like(__i0),
+                                                 np.kron(np.ones(nj, dtype=int),
+                                                         np.arange(ni)))
+            j = np.repeat(__j0, n_tot) + np.kron(np.ones_like(__j0),
+                                                 np.kron(np.arange(nj),
+                                                         np.ones(ni, dtype=int)))
+            ij_pairs.append(np.column_stack((i, j)))
+            indexes.append(np.repeat(np.argwhere(ix).flatten(), n_tot))
+    return np.vstack(ij_pairs), np.hstack(indexes)
+
+
+def _find_overlaps(nodes, lower_bounds, upper_bounds):
+    # np.searchsorted can be used to achieve the same, but is potentially slower?
+    ori = nodes[0]
+    step = nodes[1] - nodes[0]
+    i0 = np.ceil(((lower_bounds - ori) / step)).astype(np.int)
+    i1 = np.ceil(((upper_bounds - ori) / step)).astype(np.int)
+    i0 = np.maximum(np.minimum(i0, nodes.size), 0)
+    i1 = np.maximum(np.minimum(i1, nodes.size), 0)
+    lengths = i1 - i0
+    return i0, lengths
 
 
 def _cell_boxes(grid: xtgeo.Grid, active_cells):
