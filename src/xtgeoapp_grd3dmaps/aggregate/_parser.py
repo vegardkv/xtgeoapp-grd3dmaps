@@ -1,31 +1,85 @@
 import argparse
 import datetime
 import pathlib
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Dict, Any
 
 import numpy as np
 import xtgeo
+import yaml
 
 from xtgeoapp_grd3dmaps.aggregate import _config
-from xtgeoapp_grd3dmaps.aggregate._config import Property, Filter, parse_yaml, RootConfig
+from xtgeoapp_grd3dmaps.aggregate._config import (
+    Property,
+    Filter,
+    RootConfig,
+    Input,
+    Output,
+    ComputeSettings,
+    MapSettings
+)
 
 
 def parse_arguments(arguments):
     parser = argparse.ArgumentParser(__file__)
-    parser.add_argument("--config", help="Path to a YAML config file")
-    parser.add_argument("--mapfolder", help="Path to output map folder (overrides yaml file)")
-    parser.add_argument("--plotfolder", help="Path to output plot folder (overrides yaml file)")
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        required=True,
+        help="Config file on YAML format (required)",
+    )
+    parser.add_argument(
+        "--mapfolder",
+        help="Path to output map folder (overrides yaml file)",
+        default=None
+    )
+    parser.add_argument(
+        "--plotfolder",
+        help="Path to output plot folder (overrides yaml file)",
+        default=None
+    )
     return parser.parse_args(arguments)
 
 
 def process_arguments(arguments) -> RootConfig:
     parsed_args = parse_arguments(arguments)
-    config = parse_yaml(parsed_args.config)
-    if parsed_args.mapfolder is not None:
-        config.output.mapfolder = parsed_args.mapfolder
-    if parsed_args.plotfolder is not None:
-        config.output.plotfolder = parsed_args.plotfolder
+    config = parse_yaml(
+        parsed_args.config,
+        parsed_args.mapfolder,
+        parsed_args.plotfolder
+    )
     return config
+
+
+def parse_yaml(
+    yaml_file: Union[str],
+    map_folder: Optional[str],
+    plot_folder: Optional[str],
+) -> RootConfig:
+    config = yaml.safe_load(open(yaml_file))
+    preprocess_config_inplace(config, map_folder, plot_folder)
+    return RootConfig(
+        input=Input(**config["input"]),
+        output=Output(**config["output"]),
+        filters=[Filter(**f) for f in config.get("filters", [])],
+        computesettings=ComputeSettings(**config.get("computesettings", {})),
+        mapsettings=MapSettings(**config.get("mapsettings", {})),
+    )
+
+
+def preprocess_config_inplace(
+    config: Dict[str, Any],
+    map_folder: Optional[str],
+    plot_folder: Optional[str],
+) -> None:
+    if "eclroot" in config["input"]:
+        raise ValueError(
+            "eclroot is not supported by this operation (yet)"
+        )
+    if map_folder is not None:
+        config["output"]["mapfolder"] = map_folder
+    if plot_folder is not None:
+        config["output"]["plotfolder"] = plot_folder
 
 
 def extract_properties(

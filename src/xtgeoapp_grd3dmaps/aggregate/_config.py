@@ -3,26 +3,9 @@ Configuration for the `aggregate` module. Starting from `RootConfig`, it is poss
 deduce mandatory and optional parameters, as well as default values for whatever is not
 explicitly provided.
 """
-import pathlib
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, List, Union
-import yaml
-
-
-def parse_yaml(yaml_file: Union[pathlib.Path, str]) -> "RootConfig":
-    config = yaml.safe_load(open(yaml_file))
-    if "eclroot" in config["input"]:
-        raise ValueError(
-            "eclroot is not supported by this operation (yet)"
-        )
-    return RootConfig(
-        input=Input(**config["input"]),
-        filters=[Filter(**f) for f in config.get("filters", [])],
-        computesettings=ComputeSettings(**config.get("computesettings", {})),
-        mapsettings=MapSettings(**config.get("mapsettings", {})),
-        output=Output(**config["output"]),
-    )
+from typing import Optional, List
 
 
 class AggregationMethod(Enum):
@@ -88,6 +71,12 @@ class Output:
     mapfolder: str
     plotfolder: Optional[str] = None
     use_plotly: bool = False
+
+    def __post_init__(self):
+        if self.mapfolder == "fmu-dataio":
+            raise NotImplementedError(
+                "Export via fmu-dataio is not implemented for this action"
+            )
 
 
 @dataclass
