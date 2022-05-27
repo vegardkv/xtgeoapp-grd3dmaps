@@ -38,6 +38,11 @@ def parse_arguments(arguments):
         help="Path to output plot folder (overrides yaml file)",
         default=None
     )
+    parser.add_argument(
+        "--eclroot",
+        help="Eclipse root name (includes case name)",
+        default=None
+    )
     return parser.parse_args(arguments)
 
 
@@ -46,7 +51,8 @@ def process_arguments(arguments) -> RootConfig:
     config = parse_yaml(
         parsed_args.config,
         parsed_args.mapfolder,
-        parsed_args.plotfolder
+        parsed_args.plotfolder,
+        parsed_args.eclroot,
     )
     return config
 
@@ -55,9 +61,9 @@ def parse_yaml(
     yaml_file: Union[str],
     map_folder: Optional[str],
     plot_folder: Optional[str],
+    ecl_root: Optional[str]
 ) -> RootConfig:
-    config = yaml.safe_load(open(yaml_file))
-    preprocess_config_inplace(config, map_folder, plot_folder)
+    config = load_yaml(yaml_file, map_folder, plot_folder, ecl_root)
     return RootConfig(
         input=Input(**config["input"]),
         output=Output(**config["output"]),
@@ -67,19 +73,27 @@ def parse_yaml(
     )
 
 
-def preprocess_config_inplace(
-    config: Dict[str, Any],
+def load_yaml(
+    yaml_file: str,
     map_folder: Optional[str],
     plot_folder: Optional[str],
-) -> None:
-    if "eclroot" in config["input"]:
-        raise ValueError(
-            "eclroot is not supported by this operation (yet)"
-        )
+    ecl_root: Optional[str],
+) -> Dict[str, Any]:
+    content = open(yaml_file).read()
+    config = yaml.safe_load(content)
+    if ecl_root is None and "eclroot" in config["input"]:
+        ecl_root = config["input"]["eclroot"]
+    if ecl_root is not None:
+        # eclroot set either via "input" or as CL argument. Need to re-read file content
+        # and replace $eclroot
+        content = content.replace("$eclroot", ecl_root)
+        config = yaml.safe_load(content)
+        config["input"].pop("eclroot", None)
     if map_folder is not None:
         config["output"]["mapfolder"] = map_folder
     if plot_folder is not None:
         config["output"]["plotfolder"] = plot_folder
+    return config
 
 
 def extract_properties(
