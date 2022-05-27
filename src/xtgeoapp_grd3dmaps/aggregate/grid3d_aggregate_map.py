@@ -4,6 +4,7 @@ import xtgeo
 import numpy as np
 from xtgeo.common import XTGeoDialog
 
+from xtgeoviz import quickplot
 from xtgeoapp_grd3dmaps.common import config
 from xtgeoapp_grd3dmaps.common.parser import (
     extract_properties,
@@ -26,13 +27,23 @@ def write_map(xn, yn, map_, filename):
         ncol=xn.size, nrow=yn.size, xinc=dx, yinc=dy, xori=xn[0], yori=yn[0], values=masked_map
     )
     surface.to_file(filename)
+    return surface
 
 
-def write_plot(xn, yn, map_, filename):
+def write_plot_using_plotly(xn, yn, map_, filename):
     import plotly.express as px
     px.imshow(
         map_.T, x=xn, y=yn, origin="lower"
-    ).write_html(filename, include_plotlyjs="cdn")
+    ).write_html(filename.with_suffix('.html'), include_plotlyjs="cdn")
+
+
+def write_plot_using_quickplot(surface, filename):
+    quickplot(surface, filename=filename.with_suffix('.png'))
+
+
+def deduce_map_filename(filter_name, agg_method, property_name):
+    fn = f"{filter_name}--{agg_method.value}_{property_name.replace('_', '--')}.gri"
+    return fn
 
 
 def generate_maps(
@@ -42,7 +53,8 @@ def generate_maps(
     agg_method,
     output_directory,
     map_settings,
-    plot_directory
+    plot_directory,
+    use_plotly,
 ):
     _XTG.say("Reading Grid")
     grid = xtgeo.grid_from_file(grid_name)
@@ -68,14 +80,14 @@ def generate_maps(
         # Max saturation maps
         assert len(properties) == len(f_maps)
         for prop, map_ in zip(properties, f_maps):
-            # TODO: verify namestyle
-            fn = f"{f_name}--{agg_method.value}_{prop.name.replace('_', '--')}"
-            fn += ".gri"
-            write_map(xn, yn, map_, pathlib.Path(output_directory) / fn)
+            fn = deduce_map_filename(f_name, agg_method, prop.name)
+            surface = write_map(xn, yn, map_, pathlib.Path(output_directory) / fn)
             if plot_directory:
-                pn = pathlib.Path(plot_directory) / fn
-                pn = pn.with_suffix(".html")
-                write_plot(xn, yn, map_, pn)
+                pn = (pathlib.Path(plot_directory) / fn).with_suffix('')
+                if use_plotly:
+                    write_plot_using_plotly(xn, yn, map_, pn)
+                else:
+                    write_plot_using_quickplot(surface, pn)
 
 
 def generate_from_config(config_: config.RootConfig):
@@ -87,6 +99,7 @@ def generate_from_config(config_: config.RootConfig):
         config_.output.mapfolder,
         config_.mapsettings,
         config_.output.plotfolder,
+        config_.output.use_plotly,
     )
 
 

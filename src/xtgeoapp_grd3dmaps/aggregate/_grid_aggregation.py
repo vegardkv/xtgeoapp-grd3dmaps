@@ -37,7 +37,6 @@ def aggregate_maps(
         Doubly nested list of maps. The first index corresponds to `ìnclusion_filters`,
         and the second index to `grid_props`.
     """
-    # TODO: May want to remove type hints? (depends on repo)
     # Determine cells where properties are always masked
     active = grid.actnum_array.flatten().astype(bool)
     props = [p.values1d[active] for p in grid_props]
@@ -59,7 +58,7 @@ def aggregate_maps(
     )
     # Iterate filters
     results = []
-    for incl in tqdm.tqdm(inclusion_filters, desc="Iterating inclusion filters"):
+    for incl in inclusion_filters:
         rows0, cols0 = connections
         if incl is not None:
             to_remove = ~np.isin(connections[1], np.argwhere(incl).flatten())

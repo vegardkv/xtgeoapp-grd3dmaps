@@ -87,6 +87,7 @@ class MapSettings:
 class Output:
     mapfolder: str
     plotfolder: Optional[str] = None
+    use_plotly: bool = False
 
 
 @dataclass
