@@ -16,17 +16,17 @@ def calculate_migration_time_property(
     grid_file: Optional[str],
 ):
     prop_spec = [
-        config.Property(source=f, name=property_name)
+        _config.Property(source=f, name=property_name)
         for f in glob.glob(properties_files, recursive=True)
     ]
     grid = None if grid_file is None else xtgeo.grid_from_file(grid_file)
-    properties = parser.extract_properties(prop_spec, grid)
+    properties = _parser.extract_properties(prop_spec, grid)
     t_prop = _migration_time.generate_migration_time_property(properties, lower_threshold)
     return t_prop
 
 
 def main(arguments):
-    config_ = parser.process_arguments(arguments)
+    config_ = _parser.process_arguments(arguments)
     if len(config_.input.properties) > 1:
         raise ValueError(
             "Migration time computation is only supported for a single property"
@@ -39,10 +39,10 @@ def main(arguments):
         config_.input.grid,
     )
     # Use temporary file for t_prop while executing aggregation
-    config_.computesettings.aggregation = config.AggregationMethod.MIN
+    config_.computesettings.aggregation = _config.AggregationMethod.MIN
     temp_file, temp_path = tempfile.mkstemp()
     os.close(temp_file)
-    config_.input.properties.append(config.Property(temp_path, None, None))
+    config_.input.properties.append(_config.Property(temp_path, None, None))
     t_prop.to_file(temp_path)
     grid3d_aggregate_map.generate_from_config(config_)
     os.unlink(temp_path)

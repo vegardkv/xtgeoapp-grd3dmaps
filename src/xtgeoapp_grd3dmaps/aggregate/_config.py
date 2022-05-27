@@ -5,7 +5,7 @@ explicitly provided.
 """
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Tuple, Dict
 
 
 class AggregationMethod(Enum):
@@ -40,18 +40,35 @@ class Input:
 
 
 @dataclass
-class Filter:
+class ZProperty:
     source: str
     name: Optional[str] = None
 
 
 @dataclass
+class Zonation:
+    zproperty: Optional[ZProperty] = None
+    zranges: Dict[str, Tuple[int, int]] = field(default_factory=dict)
+
+    def __post_init__(self):
+        if self.zproperty is None or isinstance(self.zproperty, ZProperty):
+            return
+        self.zproperty = ZProperty(**self.zproperty)
+
+
+@dataclass
 class ComputeSettings:
     aggregation: AggregationMethod = AggregationMethod.MAX
+    all: bool = True
+    zone: bool = True
 
     def __post_init__(self):
         if isinstance(self.aggregation, str):
             self.aggregation = AggregationMethod(self.aggregation.lower())
+        if self.all is False and self.zone is False:
+            raise ValueError(
+                "Both 'all' and 'zone' is turned off, meaning no maps will be computed"
+            )
 
 
 @dataclass
@@ -83,6 +100,6 @@ class Output:
 class RootConfig:
     input: Input
     output: Output
-    filters: List[Filter] = field(default_factory=lambda: [])
+    zonation: Zonation = Zonation()
     computesettings: ComputeSettings = ComputeSettings()
     mapsettings: MapSettings = MapSettings()

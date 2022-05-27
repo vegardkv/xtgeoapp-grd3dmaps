@@ -10,12 +10,11 @@ import yaml
 from xtgeoapp_grd3dmaps.aggregate import _config
 from xtgeoapp_grd3dmaps.aggregate._config import (
     Property,
-    Filter,
     RootConfig,
     Input,
     Output,
     ComputeSettings,
-    MapSettings
+    MapSettings, Zonation
 )
 
 
@@ -53,14 +52,16 @@ def parse_arguments(arguments):
 
 def process_arguments(arguments) -> RootConfig:
     parsed_args = parse_arguments(arguments)
+    replacements = {}
+    if parsed_args.eclroot is not None:
+        replacements["eclroot"] = parsed_args.eclroot
+    if parsed_args.folderroot is not None:
+        replacements["folderroot"] = parsed_args.folderroot
     config = parse_yaml(
         parsed_args.config,
         parsed_args.mapfolder,
         parsed_args.plotfolder,
-        replacements={
-            "eclroot": parsed_args.eclroot,
-            "folderroot": parsed_args.folderroot,
-        },
+        replacements,
     )
     return config
 
@@ -75,7 +76,7 @@ def parse_yaml(
     return RootConfig(
         input=Input(**config["input"]),
         output=Output(**config["output"]),
-        filters=[Filter(**f) for f in config.get("filters", [])],
+        zonation=Zonation(**config["zonation"]),
         computesettings=ComputeSettings(**config.get("computesettings", {})),
         mapsettings=MapSettings(**config.get("mapsettings", {})),
     )
@@ -89,10 +90,9 @@ def load_yaml(
 ) -> Dict[str, Any]:
     content = open(yaml_file).read()
     config = yaml.safe_load(content)
-    if "eclroot" in config["input"] and "eclroot" not in replacements:
-        replacements["eclroot"] = config["input"]
-    if "folderroot" in config["input"] and "folderroot" not in replacements:
-        replacements["folderroot"] = config["input"]
+    for kw in ("eclroot", "folderroot"):
+        if kw in config["input"] and kw not in replacements:
+            replacements[kw] = config["input"][kw]
     for key, rep in replacements.items():
         content = content.replace(f"${key}", rep)
     if len(replacements) > 0:
@@ -114,6 +114,10 @@ def load_yaml(
             " Keywords representing properties must be defined under 'properties' for"
             f" this action. Redundant keywords: {', '.join(redundant_keywords)}"
         )
+    if "filters" in config:
+        raise NotImplementedError("Keyword 'filters' is not supported by this action")
+    if "superranges" in config.get("zonation", {}):
+        raise NotImplementedError("Keyword 'superranges' is not supported by this action")
     return config
 
 
@@ -148,20 +152,23 @@ def extract_properties(
     return properties
 
 
-def extract_filters(
-    filter_spec: List[Filter], actnum: np.ndarray
-) -> List[Tuple[str, np.ndarray]]:
-    filters = []
-    for filter_ in filter_spec:
-        prop = xtgeo.gridproperty_from_file(filter_.source)
+def extract_zonations(zonation: Zonation, grid: xtgeo.Grid) -> List[Tuple[str, np.ndarray]]:
+    zones = []
+    actnum = grid.actnum_indices
+    if zonation.zproperty is not None:
+        prop = xtgeo.gridproperty_from_file(
+            zonation.zproperty.source, grid=grid, name=zonation.zproperty.name
+        )
         assert prop.isdiscrete
         for f_code, f_name in prop.codes.items():
             if f_name == "":
                 continue
-            filters.append(
-                (f_name, prop.values1d[actnum] == f_code)
-            )
-    return filters
+            zones.append((f_name, prop.values1d[actnum] == f_code))
+    else:
+        for name, zr in zonation.zranges.items():
+            k = grid.get_ijk()[2].values1d[actnum]
+            zones.append((name, (zr[0] <= k) & (k <= zr[1])))
+    return zones
 
 
 def create_map_template(map_settings: _config.MapSettings) -> Union[xtgeo.RegularSurface, float]:

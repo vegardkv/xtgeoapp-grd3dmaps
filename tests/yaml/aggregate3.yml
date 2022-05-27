@@ -5,8 +5,9 @@ input:
     - source: "tests/data/reek/REEK.INIT"
       name: "PORO"
 
-filters:
-  - source: "tests/data/reek/reek_sim_zone.roff"
+zonation:
+  zproperty:
+    source: "tests/data/reek/reek_sim_zone.roff"
 
 computesettings:
   aggregation: "mean"
@@ -21,4 +22,3 @@ mapsettings:
 
 output:
   mapfolder: tmp
-  plotfolder: tmp

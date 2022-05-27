@@ -1,15 +1,19 @@
 import pathlib
 import sys
+from typing import List
+
 import xtgeo
 import numpy as np
 from xtgeo.common import XTGeoDialog
 
 from xtgeoviz import quickplot
+
+from xtgeoapp_grd3dmaps.aggregate._config import Property, AggregationMethod, \
+    MapSettings, Zonation, ComputeSettings
 from xtgeoapp_grd3dmaps.aggregate._parser import (
     extract_properties,
-    extract_filters,
     process_arguments,
-    create_map_template,
+    create_map_template, extract_zonations,
 )
 from . import _grid_aggregation, _config
 
@@ -45,23 +49,25 @@ def deduce_map_filename(filter_name, agg_method, property_name):
 
 
 def generate_maps(
-    grid_name,
-    property_spec,
-    filter_spec,
-    agg_method,
-    output_directory,
-    map_settings,
-    plot_directory,
-    use_plotly,
+    grid_name: str,
+    property_spec: List[Property],
+    zonation: Zonation,
+    computesettings: ComputeSettings,
+    output_directory: str,
+    map_settings: MapSettings,
+    plot_directory: str,
+    use_plotly: bool,
 ):
     _XTG.say("Reading Grid")
     grid = xtgeo.grid_from_file(grid_name)
     _XTG.say("Reading properties")
     properties = extract_properties(property_spec, grid)
     _XTG.say("Reading Zones")
-    _filters = [("all", None)]
-    if filter_spec is not None:
-        _filters += extract_filters(filter_spec, grid.actnum_indices)
+    _filters = []
+    if computesettings.all:
+        _filters.append(("all", None))
+    if computesettings.zone:
+        _filters += extract_zonations(zonation, grid)
     _XTG.say("Setting up map template")
     map_template = create_map_template(map_settings)
     _XTG.say("Generating Property Maps")
@@ -70,7 +76,7 @@ def generate_maps(
         grid,
         properties,
         [f[1] for f in _filters],
-        agg_method,
+        computesettings.aggregation,
     )
     assert len(_filters) == len(p_maps)
     for filter_, f_maps in zip(_filters, p_maps):
@@ -78,7 +84,7 @@ def generate_maps(
         # Max saturation maps
         assert len(properties) == len(f_maps)
         for prop, map_ in zip(properties, f_maps):
-            fn = deduce_map_filename(f_name, agg_method, prop.name)
+            fn = deduce_map_filename(f_name, computesettings.aggregation, prop.name)
             surface = write_map(xn, yn, map_, pathlib.Path(output_directory) / fn)
             if plot_directory:
                 pn = (pathlib.Path(plot_directory) / fn).with_suffix('')
@@ -92,8 +98,8 @@ def generate_from_config(config: _config.RootConfig):
     generate_maps(
         config.input.grid,
         config.input.properties,
-        config.filters,
-        config.computesettings.aggregation,
+        config.zonation,
+        config.computesettings,
         config.output.mapfolder,
         config.mapsettings,
         config.output.plotfolder,

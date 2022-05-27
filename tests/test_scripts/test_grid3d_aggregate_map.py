@@ -13,8 +13,6 @@ def test_aggregated_map1(datatree):
             "tests/yaml/aggregate1.yml",
             "--mapfolder",
             str(result),
-            "--plotfolder",
-            str(result),
         ]
     )
     swat = xtgeo.surface_from_file(result / "all--max_SWAT--20030101.gri")
@@ -30,8 +28,6 @@ def test_aggregated_map2(datatree):
             "tests/yaml/aggregate2.yml",
             "--mapfolder",
             str(result),
-            "--plotfolder",
-            str(result),
         ]
     )
     swat = xtgeo.surface_from_file(result / "all--min_SWAT--20030101.gri")
@@ -46,8 +42,6 @@ def test_aggregated_map3(datatree):
             "--config",
             "tests/yaml/aggregate3.yml",
             "--mapfolder",
-            str(result),
-            "--plotfolder",
             str(result),
         ]
     )
