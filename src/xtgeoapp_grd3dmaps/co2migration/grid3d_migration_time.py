@@ -1,6 +1,3 @@
-"""
-TODO: Not obvious that this should be part of xtgeoapp?
-"""
 import os
 import sys
 import glob
@@ -43,7 +40,7 @@ def main(arguments):
         p_spec.lower_threshold,
         config_.input.grid,
     )
-    # Dump t_prop to temporary file and execute aggregation
+    # Use temporary file for t_prop while executing aggregation
     config_.computesettings.aggregation = config.AggregationMethod.MIN
     temp_file, temp_path = tempfile.mkstemp()
     os.close(temp_file)

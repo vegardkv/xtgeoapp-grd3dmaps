@@ -1,15 +1,15 @@
 import pathlib
 import sys
-from typing import Union
 import xtgeo
 import numpy as np
 from xtgeo.common import XTGeoDialog
 
-import xtgeoapp_grd3dmaps.common.config
+from xtgeoapp_grd3dmaps.common import config
 from xtgeoapp_grd3dmaps.common.parser import (
     extract_properties,
     extract_filters,
-    parse_arguments,
+    process_arguments,
+    create_map_template,
 )
 from . import _grid_aggregation
 
@@ -33,26 +33,6 @@ def write_plot(xn, yn, map_, filename):
     px.imshow(
         map_.T, x=xn, y=yn, origin="lower"
     ).write_html(filename, include_plotlyjs="cdn")
-
-
-def create_map_template(map_settings: xtgeoapp_grd3dmaps.common.config.MapSettings) -> Union[xtgeo.RegularSurface, float]:
-    # TODO: possible duplicate of existing functionality
-    if map_settings.templatefile is not None:
-        surf = xtgeo.surface_from_file(map_settings.templatefile)
-        if surf.rotation != 0.0:
-            raise NotImplementedError("Rotated surfaces are not handled correctly yet")
-        return surf
-    elif map_settings.xori is not None:
-        return xtgeo.RegularSurface(
-            ncol=map_settings.ncol,
-            nrow=map_settings.nrow,
-            xinc=map_settings.xinc,
-            yinc=map_settings.yinc,
-            xori=map_settings.xori,
-            yori=map_settings.yori,
-        )
-    else:
-        return map_settings.pixel_to_cell_ratio
 
 
 def generate_maps(
@@ -98,27 +78,20 @@ def generate_maps(
                 write_plot(xn, yn, map_, pn)
 
 
-def generate_from_config(config: xtgeoapp_grd3dmaps.common.config.RootConfig):
+def generate_from_config(config_: config.RootConfig):
     generate_maps(
-        config.input.grid,
-        config.input.properties,
-        config.filters,
-        config.computesettings.aggregation,
-        config.output.mapfolder,
-        config.mapsettings,
-        config.output.plotfolder,
+        config_.input.grid,
+        config_.input.properties,
+        config_.filters,
+        config_.computesettings.aggregation,
+        config_.output.mapfolder,
+        config_.mapsettings,
+        config_.output.plotfolder,
     )
 
 
 def main(arguments):
-    # TODO: try to use common for this to the extent possible
-    args = parse_arguments(arguments)
-    config = xtgeoapp_grd3dmaps.common.config.parse_yaml(args.config)
-    if args.mapfolder is not None:
-        config.output.mapfolder = args.mapfolder
-    if args.plotfolder is not None:
-        config.output.plotfolder = args.plotfolder
-    generate_from_config(config)
+    generate_from_config(process_arguments(arguments))
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 """
 Configuration for modules `aggregate` and `co2_migration`. Starting from `RootConfig`, it
 is possible to deduce mandatory and optional parameters, as well as default values for
-whatever is not provided explicitly.
+whatever is not explicitly provided.
 """
 import pathlib
 from dataclasses import dataclass, field
@@ -80,7 +80,6 @@ class MapSettings:
     ncol: Optional[int] = None
     nrow: Optional[int] = None
     templatefile: Optional[str] = None
-    # Specific to grid aggregation:
     pixel_to_cell_ratio: float = 2.0
 
 
