@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import List, Optional, Tuple, Union
 import numpy as np
 import tqdm
@@ -7,12 +6,7 @@ import scipy.interpolate
 import scipy.spatial
 import scipy.sparse
 
-
-class AggregationMethod(Enum):
-    max = "max"
-    min = "min"
-    mean = "mean"
-    sum = "sum"
+from xtgeoapp_grd3dmaps.common.config import AggregationMethod
 
 
 def aggregate_maps(

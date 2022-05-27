@@ -4,15 +4,14 @@ from typing import Union
 import xtgeo
 import numpy as np
 from xtgeo.common import XTGeoDialog
-from ._config import (
+
+import xtgeoapp_grd3dmaps.common.config
+from xtgeoapp_grd3dmaps.common.parser import (
     extract_properties,
     extract_filters,
     process_args,
 )
-from . import (
-    _grid_aggregation,
-    _config,
-)
+from . import _grid_aggregation
 
 
 _XTG = XTGeoDialog()
@@ -36,7 +35,7 @@ def write_plot(xn, yn, map_, filename):
     ).write_html(filename, include_plotlyjs="cdn")
 
 
-def create_map_template(map_settings: _config.MapSettings) -> Union[xtgeo.RegularSurface, float]:
+def create_map_template(map_settings: xtgeoapp_grd3dmaps.common.config.MapSettings) -> Union[xtgeo.RegularSurface, float]:
     # TODO: possible duplicate of existing functionality
     if map_settings.templatefile is not None:
         surf = xtgeo.surface_from_file(map_settings.templatefile)
@@ -99,7 +98,7 @@ def generate_maps(
                 write_plot(xn, yn, map_, pn)
 
 
-def generate_from_config(config: _config.Root):
+def generate_from_config(config: xtgeoapp_grd3dmaps.common.config.Root):
     generate_maps(
         config.input.grid,
         config.input.properties,
@@ -112,9 +111,9 @@ def generate_from_config(config: _config.Root):
 
 
 def main(arguments):
-    # TODO: try to use configparser for this to the extent possible
+    # TODO: try to use common for this to the extent possible
     args = process_args(arguments)
-    config = _config.Root.from_yaml(args.config)
+    config = xtgeoapp_grd3dmaps.common.config.Root.from_yaml(args.config)
     if args.mapfolder is not None:
         config.output.mapfolder = args.mapfolder
     if args.plotfolder is not None:
