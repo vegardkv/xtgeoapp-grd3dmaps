@@ -43,6 +43,11 @@ def parse_arguments(arguments):
         help="Eclipse root name (includes case name)",
         default=None
     )
+    parser.add_argument(
+        "--folderroot",
+        help="Folder root name ($-alias available in config file)",
+        default=None
+    )
     return parser.parse_args(arguments)
 
 
@@ -52,7 +57,10 @@ def process_arguments(arguments) -> RootConfig:
         parsed_args.config,
         parsed_args.mapfolder,
         parsed_args.plotfolder,
-        parsed_args.eclroot,
+        replacements={
+            "eclroot": parsed_args.eclroot,
+            "folderroot": parsed_args.folderroot,
+        },
     )
     return config
 
@@ -61,9 +69,9 @@ def parse_yaml(
     yaml_file: Union[str],
     map_folder: Optional[str],
     plot_folder: Optional[str],
-    ecl_root: Optional[str]
+    replacements: Dict[str, str],
 ) -> RootConfig:
-    config = load_yaml(yaml_file, map_folder, plot_folder, ecl_root)
+    config = load_yaml(yaml_file, map_folder, plot_folder, replacements)
     return RootConfig(
         input=Input(**config["input"]),
         output=Output(**config["output"]),
@@ -77,22 +85,35 @@ def load_yaml(
     yaml_file: str,
     map_folder: Optional[str],
     plot_folder: Optional[str],
-    ecl_root: Optional[str],
+    replacements: Dict[str, str],
 ) -> Dict[str, Any]:
     content = open(yaml_file).read()
     config = yaml.safe_load(content)
-    if ecl_root is None and "eclroot" in config["input"]:
-        ecl_root = config["input"]["eclroot"]
-    if ecl_root is not None:
-        # eclroot set either via "input" or as CL argument. Need to re-read file content
-        # and replace $eclroot
-        content = content.replace("$eclroot", ecl_root)
+    if "eclroot" in config["input"] and "eclroot" not in replacements:
+        replacements["eclroot"] = config["input"]
+    if "folderroot" in config["input"] and "folderroot" not in replacements:
+        replacements["folderroot"] = config["input"]
+    for key, rep in replacements.items():
+        content = content.replace(f"${key}", rep)
+    if len(replacements) > 0:
+        # Re-parse file content after replacements and remove keywords from "input" to
+        # avoid unintended usages beyond this point
         config = yaml.safe_load(content)
-        config["input"].pop("eclroot", None)
+        for key in replacements.keys():
+            config["input"].pop(key, None)
     if map_folder is not None:
         config["output"]["mapfolder"] = map_folder
     if plot_folder is not None:
         config["output"]["plotfolder"] = plot_folder
+    # Handle things that is implemented in avghc, but not in this module
+    redundant_keywords = set(config["input"].keys()).difference({"properties", "grid"})
+    if redundant_keywords:
+        raise ValueError(
+            "The 'input' section only allows keywords 'properties' and 'grid'."
+            " Keywords 'dates' and 'diffdates' are not implemented for this action."
+            " Keywords representing properties must be defined under 'properties' for"
+            f" this action. Redundant keywords: {', '.join(redundant_keywords)}"
+        )
     return config
 
 
