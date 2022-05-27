@@ -5,10 +5,8 @@ import tempfile
 from typing import Optional
 import xtgeo
 
-from xtgeoapp_grd3dmaps.common import config
-from xtgeoapp_grd3dmaps.common import parser
-from xtgeoapp_grd3dmaps.aggregate import grid3d_aggregate_map
-from xtgeoapp_grd3dmaps.co2migration import _migration_time
+from xtgeoapp_grd3dmaps.aggregate import grid3d_aggregate_map, _migration_time, _config, \
+    _parser
 
 
 def calculate_migration_time_property(

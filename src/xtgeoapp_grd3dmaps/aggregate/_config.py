@@ -1,7 +1,7 @@
 """
-Configuration for modules `aggregate` and `co2_migration`. Starting from `RootConfig`, it
-is possible to deduce mandatory and optional parameters, as well as default values for
-whatever is not explicitly provided.
+Configuration for the `aggregate` module. Starting from `RootConfig`, it is possible to
+deduce mandatory and optional parameters, as well as default values for whatever is not
+explicitly provided.
 """
 import pathlib
 from dataclasses import dataclass, field

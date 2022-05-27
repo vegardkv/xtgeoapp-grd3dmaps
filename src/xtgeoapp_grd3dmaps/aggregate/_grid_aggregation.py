@@ -1,12 +1,11 @@
 from typing import List, Optional, Tuple, Union
 import numpy as np
-import tqdm
 import xtgeo
 import scipy.interpolate
 import scipy.spatial
 import scipy.sparse
 
-from xtgeoapp_grd3dmaps.common.config import AggregationMethod
+from xtgeoapp_grd3dmaps.aggregate._config import AggregationMethod
 
 
 def aggregate_maps(

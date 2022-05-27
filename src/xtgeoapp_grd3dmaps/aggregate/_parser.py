@@ -6,8 +6,8 @@ from typing import List, Optional, Tuple, Union
 import numpy as np
 import xtgeo
 
-from xtgeoapp_grd3dmaps.common import config
-from xtgeoapp_grd3dmaps.common.config import Property, Filter, parse_yaml, RootConfig
+from xtgeoapp_grd3dmaps.aggregate import _config
+from xtgeoapp_grd3dmaps.aggregate._config import Property, Filter, parse_yaml, RootConfig
 
 
 def parse_arguments(arguments):
@@ -75,7 +75,7 @@ def extract_filters(
     return filters
 
 
-def create_map_template(map_settings: config.MapSettings) -> Union[xtgeo.RegularSurface, float]:
+def create_map_template(map_settings: _config.MapSettings) -> Union[xtgeo.RegularSurface, float]:
     if map_settings.templatefile is not None:
         surf = xtgeo.surface_from_file(map_settings.templatefile)
         if surf.rotation != 0.0:

@@ -5,15 +5,13 @@ import numpy as np
 from xtgeo.common import XTGeoDialog
 
 from xtgeoviz import quickplot
-from xtgeoapp_grd3dmaps.common import config
-from xtgeoapp_grd3dmaps.common.parser import (
+from xtgeoapp_grd3dmaps.aggregate._parser import (
     extract_properties,
     extract_filters,
     process_arguments,
     create_map_template,
 )
-from . import _grid_aggregation
-
+from . import _grid_aggregation, _config
 
 _XTG = XTGeoDialog()
 
@@ -90,16 +88,16 @@ def generate_maps(
                     write_plot_using_quickplot(surface, pn)
 
 
-def generate_from_config(config_: config.RootConfig):
+def generate_from_config(config: _config.RootConfig):
     generate_maps(
-        config_.input.grid,
-        config_.input.properties,
-        config_.filters,
-        config_.computesettings.aggregation,
-        config_.output.mapfolder,
-        config_.mapsettings,
-        config_.output.plotfolder,
-        config_.output.use_plotly,
+        config.input.grid,
+        config.input.properties,
+        config.filters,
+        config.computesettings.aggregation,
+        config.output.mapfolder,
+        config.mapsettings,
+        config.output.plotfolder,
+        config.output.use_plotly,
     )
 
 
