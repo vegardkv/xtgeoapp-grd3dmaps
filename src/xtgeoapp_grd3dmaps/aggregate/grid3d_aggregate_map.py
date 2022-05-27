@@ -9,7 +9,7 @@ import xtgeoapp_grd3dmaps.common.config
 from xtgeoapp_grd3dmaps.common.parser import (
     extract_properties,
     extract_filters,
-    process_args,
+    parse_arguments,
 )
 from . import _grid_aggregation
 
@@ -52,7 +52,7 @@ def create_map_template(map_settings: xtgeoapp_grd3dmaps.common.config.MapSettin
             yori=map_settings.yori,
         )
     else:
-        return map_settings.pixel_cell_ratio
+        return map_settings.pixel_to_cell_ratio
 
 
 def generate_maps(
@@ -98,7 +98,7 @@ def generate_maps(
                 write_plot(xn, yn, map_, pn)
 
 
-def generate_from_config(config: xtgeoapp_grd3dmaps.common.config.Root):
+def generate_from_config(config: xtgeoapp_grd3dmaps.common.config.RootConfig):
     generate_maps(
         config.input.grid,
         config.input.properties,
@@ -112,8 +112,8 @@ def generate_from_config(config: xtgeoapp_grd3dmaps.common.config.Root):
 
 def main(arguments):
     # TODO: try to use common for this to the extent possible
-    args = process_args(arguments)
-    config = xtgeoapp_grd3dmaps.common.config.Root.from_yaml(args.config)
+    args = parse_arguments(arguments)
+    config = xtgeoapp_grd3dmaps.common.config.parse_yaml(args.config)
     if args.mapfolder is not None:
         config.output.mapfolder = args.mapfolder
     if args.plotfolder is not None:

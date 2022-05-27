@@ -6,10 +6,12 @@ from typing import List, Optional, Tuple
 import numpy as np
 import xtgeo
 
-from xtgeoapp_grd3dmaps.common.config import Property, Filter
+from xtgeoapp_grd3dmaps.common.config import Property, Filter, parse_yaml, RootConfig
 
 
-def extract_properties(property_spec: List[Property], grid: Optional[xtgeo.Grid]) -> List[xtgeo.GridProperty]:
+def extract_properties(
+    property_spec: List[Property], grid: Optional[xtgeo.Grid]
+) -> List[xtgeo.GridProperty]:
     properties = []
     for spec in property_spec:
         try:
@@ -38,7 +40,9 @@ def extract_properties(property_spec: List[Property], grid: Optional[xtgeo.Grid]
     return properties
 
 
-def extract_filters(filter_spec: List[Filter], actnum: np.ndarray) -> List[Tuple[str, np.ndarray]]:
+def extract_filters(
+    filter_spec: List[Filter], actnum: np.ndarray
+) -> List[Tuple[str, np.ndarray]]:
     filters = []
     for filter_ in filter_spec:
         prop = xtgeo.gridproperty_from_file(filter_.source)
@@ -52,9 +56,19 @@ def extract_filters(filter_spec: List[Filter], actnum: np.ndarray) -> List[Tuple
     return filters
 
 
-def process_args(arguments):
+def parse_arguments(arguments):
     parser = argparse.ArgumentParser(__file__)
     parser.add_argument("--config", help="Path to a YAML config file")
     parser.add_argument("--mapfolder", help="Path to output map folder (overrides yaml file)")
     parser.add_argument("--plotfolder", help="Path to output plot folder (overrides yaml file)")
     return parser.parse_args(arguments)
+
+
+def process_arguments(arguments) -> RootConfig:
+    parsed_args = parse_arguments(arguments)
+    config = parse_yaml(parsed_args.config)
+    if parsed_args.mapfolder is not None:
+        config.output.mapfolder = parsed_args.mapfolder
+    if parsed_args.plotfolder is not None:
+        config.output.plotfolder = parsed_args.plotfolder
+    return config

@@ -48,7 +48,7 @@ def default_args(example_grid, example_property):
         grid=example_grid,
         grid_props=[example_property],
         inclusion_filters=[None],
-        method=AggregationMethod.max,
+        method=AggregationMethod.MAX,
     )
 
 
@@ -104,7 +104,7 @@ def test_with_exclusions(default_args, example_grid, example_property):
 
 
 def test_mean_method(default_args, example_property):
-    kwargs = {**default_args, 'method': AggregationMethod.mean}
+    kwargs = {**default_args, 'method': AggregationMethod.MEAN}
     _, _, maps = aggregate_maps(**kwargs)
     map_ = maps[0][0]
     assert np.all(map_ <= example_property.values[:, :, 1])
@@ -112,6 +112,6 @@ def test_mean_method(default_args, example_property):
 
 
 def test_min_method(default_args, example_property):
-    kwargs = {**default_args, 'method': AggregationMethod.min}
+    kwargs = {**default_args, 'method': AggregationMethod.MIN}
     _, _, maps = aggregate_maps(**kwargs)
     npt.assert_allclose(maps[0][0], example_property.values[:, :, 0], atol=1e-12, rtol=0)

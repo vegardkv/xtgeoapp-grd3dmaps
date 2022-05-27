@@ -8,7 +8,6 @@ import tempfile
 from typing import Optional
 import xtgeo
 
-import xtgeoapp_grd3dmaps.common.config
 from xtgeoapp_grd3dmaps.common import config
 from xtgeoapp_grd3dmaps.common import parser
 from xtgeoapp_grd3dmaps.aggregate import grid3d_aggregate_map
@@ -32,10 +31,11 @@ def calculate_migration_time_property(
 
 
 def main(arguments):
-    parsed_args = parser.process_args(arguments)
-    config_ = config.Root.from_yaml(parsed_args.config)
+    config_ = parser.process_arguments(arguments)
     if len(config_.input.properties) > 1:
-        raise ValueError("Only a single property is supported (?)")
+        raise ValueError(
+            "Migration time computation is only supported for a single property"
+        )
     p_spec = config_.input.properties.pop()
     t_prop = calculate_migration_time_property(
         p_spec.source,
@@ -44,7 +44,7 @@ def main(arguments):
         config_.input.grid,
     )
     # Dump t_prop to temporary file and execute aggregation
-    config_.computesettings.aggregation = xtgeoapp_grd3dmaps.common.config.AggregationMethod.min
+    config_.computesettings.aggregation = config.AggregationMethod.MIN
     temp_file, temp_path = tempfile.mkstemp()
     os.close(temp_file)
     config_.input.properties.append(config.Property(temp_path, None, None))

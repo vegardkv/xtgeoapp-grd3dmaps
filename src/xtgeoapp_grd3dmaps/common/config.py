@@ -1,14 +1,35 @@
-from dataclasses import dataclass
+"""
+Configuration for modules `aggregate` and `co2_migration`. Starting from `RootConfig`, it
+is possible to deduce mandatory and optional parameters, as well as default values for
+whatever is not provided explicitly.
+"""
+import pathlib
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Union
 import yaml
 
 
+def parse_yaml(yaml_file: Union[pathlib.Path, str]) -> "RootConfig":
+    config = yaml.safe_load(open(yaml_file))
+    if "eclroot" in config["input"]:
+        raise ValueError(
+            "eclroot is not supported by this operation (yet)"
+        )
+    return RootConfig(
+        input=Input(**config["input"]),
+        filters=[Filter(**f) for f in config.get("filters", [])],
+        computesettings=ComputeSettings(**config.get("computesettings", {})),
+        mapsettings=MapSettings(**config.get("mapsettings", {})),
+        output=Output(**config["output"]),
+    )
+
+
 class AggregationMethod(Enum):
-    max = "max"
-    min = "min"
-    mean = "mean"
-    sum = "sum"
+    MAX = "max"
+    MIN = "min"
+    MEAN = "mean"
+    SUM = "sum"
 
 
 @dataclass
@@ -19,7 +40,6 @@ class Property:
 
     def __post_init__(self):
         if isinstance(self.lower_threshold, str):
-            # Can be caused by invalid parsing by yaml package
             self.lower_threshold = float(self.lower_threshold)
 
 
@@ -44,11 +64,11 @@ class Filter:
 
 @dataclass
 class ComputeSettings:
-    aggregation: AggregationMethod = AggregationMethod.max
+    aggregation: AggregationMethod = AggregationMethod.MAX
 
     def __post_init__(self):
-        if not isinstance(self.aggregation, AggregationMethod):
-            self.aggregation = AggregationMethod(self.aggregation)
+        if isinstance(self.aggregation, str):
+            self.aggregation = AggregationMethod(self.aggregation.lower())
 
 
 @dataclass
@@ -61,7 +81,7 @@ class MapSettings:
     nrow: Optional[int] = None
     templatefile: Optional[str] = None
     # Specific to grid aggregation:
-    pixel_cell_ratio: float = 2.0
+    pixel_to_cell_ratio: float = 2.0
 
 
 @dataclass
@@ -71,24 +91,9 @@ class Output:
 
 
 @dataclass
-class Root:
+class RootConfig:
     input: Input
-    filters: List[Filter]
-    computesettings: ComputeSettings
-    mapsettings: MapSettings
     output: Output
-
-    @staticmethod
-    def from_yaml(yaml_file: str) -> 'Root':
-        config = yaml.safe_load(open(yaml_file))
-        if "eclroot" in config["input"]:
-            raise ValueError(
-                "eclroot is not supported by this operation (yet)"
-            )
-        return Root(
-            input=Input(**config["input"]),
-            filters=[Filter(**f) for f in config.get("filters", [])],
-            computesettings=ComputeSettings(**config.get("computesettings", {})),
-            mapsettings=MapSettings(**config.get("mapsettings", {})),
-            output=Output(**config["output"]),
-        )
+    filters: List[Filter] = field(default_factory=lambda: [])
+    computesettings: ComputeSettings = ComputeSettings()
+    mapsettings: MapSettings = MapSettings()

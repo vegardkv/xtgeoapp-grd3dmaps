@@ -201,11 +201,11 @@ def _property_to_map(
         return np.full((nx, ny), fill_value=np.nan)
     shape = (nx * ny, max(cols) + 1)
     # Calculate temporary data shift to avoid unintended deletion of data by tocsc:
-    if method == AggregationMethod.max:
+    if method == AggregationMethod.MAX:
         shift = data.min() - 1
-    elif method == AggregationMethod.min:
+    elif method == AggregationMethod.MIN:
         shift = data.max() + 1
-    elif method in (AggregationMethod.mean, AggregationMethod.sum):
+    elif method in (AggregationMethod.MEAN, AggregationMethod.SUM):
         shift = 0.0
     else:
         raise NotImplementedError
@@ -216,15 +216,15 @@ def _property_to_map(
         (np.ones_like(data), (rows, cols)), shape=shape
     ).tocsc().sum(axis=1)
     # Make sure to shift data to avoid
-    if method == AggregationMethod.max:
+    if method == AggregationMethod.MAX:
         res = sarr.max(axis=1).toarray()
-    elif method == AggregationMethod.min:
+    elif method == AggregationMethod.MIN:
         res = sarr.min(axis=1).toarray()
-    elif method == AggregationMethod.mean:
+    elif method == AggregationMethod.MEAN:
         div = np.where(count > 0, count, 1)  # Avoid division by zero
         res = sarr.sum(axis=1) / div
         res = np.asarray(res)
-    elif method == AggregationMethod.sum:
+    elif method == AggregationMethod.SUM:
         res = np.asarray(sarr.sum(axis=1))
     else:
         raise NotImplementedError
