@@ -1,7 +1,8 @@
 input:
-  grid: "tests/data/reek/REEK.EGRID"
+  eclroot: tests/data/reek/REEK
+  grid: $eclroot.EGRID
   properties:
-    - source: "tests/data/reek/REEK.UNRST"
+    - source: $eclroot.UNRST
       name: "SWAT"
       lower_threshold: 1e-12
 

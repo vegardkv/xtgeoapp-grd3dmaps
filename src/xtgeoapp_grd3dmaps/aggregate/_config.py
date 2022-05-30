@@ -48,7 +48,7 @@ class ZProperty:
 @dataclass
 class Zonation:
     zproperty: Optional[ZProperty] = None
-    zranges: Dict[str, Tuple[int, int]] = field(default_factory=dict)
+    zranges: List[Dict[str, Tuple[int, int]]] = field(default_factory=list)
 
     def __post_init__(self):
         if self.zproperty is None or isinstance(self.zproperty, ZProperty):

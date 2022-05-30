@@ -47,3 +47,21 @@ def test_aggregated_map3(datatree):
     )
     poro = xtgeo.surface_from_file(result / "all--mean_PORO.gri")
     assert poro.values.mean() == pytest.approx(0.1676, abs=0.001)
+
+
+def test_aggregated_map4(datatree):
+    result = datatree / "aggregate4_folder"
+    result.mkdir(parents=True)
+    grid3d_aggregate_map.main(
+        [
+            "--config",
+            "tests/yaml/aggregate4.yml",
+            "--mapfolder",
+            str(result)
+        ]
+    )
+    z1_poro = xtgeo.surface_from_file(result / "zone1--max_SWAT--20030101.gri")
+    assert z1_poro.values.max() == pytest.approx(1.0, abs=0.001)
+    assert (result / "all--max_SWAT--20030101.gri").is_file()
+    assert (result / "zone2--max_SWAT--20030101.gri").is_file()
+    assert (result / "zone3--max_SWAT--20030101.gri").is_file()

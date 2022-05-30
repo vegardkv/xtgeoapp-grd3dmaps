@@ -106,10 +106,12 @@ def _connect_grid_and_map(
 ):
     """
     Returns a mapping between the provided grid nodes and map pixels as
-    an np.ndarray pair, the first referring to pixel index and the second
-    to grid index.
+    an np.ndarray pair, the first referring to pixel indices and the second
+    to corresponding grid indices.
 
-    This is equivalent to
+    The implementation is equivalent to the perhaps more readable (but more
+    memory-demanding) version:
+
         x_mesh, y_mesh = np.meshgrid(x_nodes, y_nodes, indexing="ij")
         within = (
             (x_mesh.flatten()[:, np.newaxis] >= boxes[0][np.newaxis, :]) &
@@ -118,13 +120,13 @@ def _connect_grid_and_map(
             (y_mesh.flatten()[:, np.newaxis] < boxes[3][np.newaxis, :])
         )
         return np.where(within)
-    but uses significantly less memory
+
+    Note that the current implementation approximates the cell footprints by their
+    bounding box.
     """
-    # TODO: This method is based on an approximation of cell footprints by boxes. Should
-    #  we keep this, or implement alternatives + config options?
-    # ---
     i0, i_range = _find_overlapped_nodes(x_nodes, boxes[0], boxes[2])
     j0, j_range = _find_overlapped_nodes(y_nodes, boxes[1], boxes[3])
+    # ---
     invalid = (i_range == 0) | (j_range == 0)
     i0, i_range = i0[~invalid], i_range[~invalid]
     j0, j_range = j0[~invalid], j_range[~invalid]

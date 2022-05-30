@@ -76,7 +76,7 @@ def parse_yaml(
     return RootConfig(
         input=Input(**config["input"]),
         output=Output(**config["output"]),
-        zonation=Zonation(**config["zonation"]),
+        zonation=Zonation(**config.get("zonation", {})),
         computesettings=ComputeSettings(**config.get("computesettings", {})),
         mapsettings=MapSettings(**config.get("mapsettings", {})),
     )
@@ -136,7 +136,8 @@ def extract_properties(
         if spec.lower_threshold is not None:
             for p in props:
                 p.values.mask[p.values < spec.lower_threshold] = True
-        # Temporary workaround. TODO: remove
+        # Check if any of the properties missing a date had date as part of the file stem,
+        # separated by a "--"
         for p in props:
             if p.date is None and "--" in spec.source:
                 d = pathlib.Path(spec.source.split("--")[-1]).stem
@@ -147,7 +148,6 @@ def extract_properties(
                     continue
                 p.date = d
                 p.name += f"--{d}"
-        # ---
         properties += props
     return properties
 
@@ -165,9 +165,10 @@ def extract_zonations(zonation: Zonation, grid: xtgeo.Grid) -> List[Tuple[str, n
                 continue
             zones.append((f_name, prop.values1d[actnum] == f_code))
     else:
-        for name, zr in zonation.zranges.items():
-            k = grid.get_ijk()[2].values1d[actnum]
-            zones.append((name, (zr[0] <= k) & (k <= zr[1])))
+        k = grid.get_ijk()[2].values1d[actnum]
+        for z_def in zonation.zranges:
+            for z_name, zr in z_def.items():
+                zones.append((z_name, (zr[0] <= k) & (k <= zr[1])))
     return zones
 
 

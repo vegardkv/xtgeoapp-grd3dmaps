@@ -1,4 +1,3 @@
-# Comparable to avg1a.yml
 input:
   grid: "tests/data/reek/REEK.EGRID"
   properties:
