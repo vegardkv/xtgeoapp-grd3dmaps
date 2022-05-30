@@ -43,8 +43,9 @@ def write_plot_using_quickplot(surface, filename):
     quickplot(surface, filename=filename.with_suffix('.png'))
 
 
-def deduce_map_filename(filter_name, agg_method, property_name):
-    fn = f"{filter_name}--{agg_method.value}_{property_name.replace('_', '--')}.gri"
+def deduce_map_filename(filter_name, agg_method, property_name, aggregation_tag):
+    agg = f"{agg_method.value}_" if aggregation_tag else ""
+    fn = f"{filter_name}--{agg}{property_name.replace('_', '--')}.gri"
     return fn
 
 
@@ -57,6 +58,7 @@ def generate_maps(
     map_settings: MapSettings,
     plot_directory: str,
     use_plotly: bool,
+    aggregation_tag: bool,
 ):
     _XTG.say("Reading Grid")
     grid = xtgeo.grid_from_file(grid_name)
@@ -84,7 +86,9 @@ def generate_maps(
         # Max saturation maps
         assert len(properties) == len(f_maps)
         for prop, map_ in zip(properties, f_maps):
-            fn = deduce_map_filename(f_name, computesettings.aggregation, prop.name)
+            fn = deduce_map_filename(
+                f_name, computesettings.aggregation, prop.name, aggregation_tag
+            )
             surface = write_map(xn, yn, map_, pathlib.Path(output_directory) / fn)
             if plot_directory:
                 pn = (pathlib.Path(plot_directory) / fn).with_suffix('')
@@ -104,6 +108,7 @@ def generate_from_config(config: _config.RootConfig):
         config.mapsettings,
         config.output.plotfolder,
         config.output.use_plotly,
+        config.output.aggregation_tag,
     )
 
 

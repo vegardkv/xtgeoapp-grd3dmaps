@@ -40,6 +40,7 @@ def main(arguments):
     )
     # Use temporary file for t_prop while executing aggregation
     config_.computesettings.aggregation = _config.AggregationMethod.MIN
+    config_.output.aggregation_tag = False
     temp_file, temp_path = tempfile.mkstemp()
     os.close(temp_file)
     config_.input.properties.append(_config.Property(temp_path, None, None))

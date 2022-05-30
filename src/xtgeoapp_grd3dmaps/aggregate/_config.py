@@ -88,6 +88,7 @@ class Output:
     mapfolder: str
     plotfolder: Optional[str] = None
     use_plotly: bool = False
+    aggregation_tag: bool = True
 
     def __post_init__(self):
         if self.mapfolder == "fmu-dataio":
