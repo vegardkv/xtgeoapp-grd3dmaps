@@ -25,7 +25,9 @@ def calculate_migration_time_property(
     return t_prop
 
 
-def main(arguments):
+def main(arguments=None):
+    if arguments is None:
+        arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
     if len(config_.input.properties) > 1:
         raise ValueError(
@@ -50,4 +52,4 @@ def main(arguments):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()

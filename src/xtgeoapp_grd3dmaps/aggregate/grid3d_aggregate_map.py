@@ -112,9 +112,11 @@ def generate_from_config(config: _config.RootConfig):
     )
 
 
-def main(arguments):
+def main(arguments=None):
+    if arguments is None:
+        arguments = sys.argv[1:]
     generate_from_config(process_arguments(arguments))
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()
