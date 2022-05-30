@@ -1,13 +1,22 @@
 input:
-  grid: "tests/data/reek/REEK.EGRID"
+  folderroot: tests/data/reek
+  grid: $folderroot/reek_sim_grid.roff
   properties:
-    - source: "tests/data/reek/REEK.UNRST"
-      name: "SWAT"
-      lower_threshold: 1e-12
+    - source: $folderroot/reek_sim_poro.roff
+      name: PORO
+
+zonation:
+  zranges:
+    - Z1: [ 1, 5 ]
+    - Z2: [ 6, 10 ]
+    - Z3: [ 11, 14 ]
 
 computesettings:
   weight_by_dz: yes
   aggregation: mean
+
+mapsettings:
+  pixel_to_cell_ratio: 4.0
 
 output:
   mapfolder: tmp

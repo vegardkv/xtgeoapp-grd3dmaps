@@ -75,8 +75,10 @@ def test_aggregated_map5(datatree):
             "--config",
             "tests/yaml/aggregate5.yml",
             "--mapfolder",
-            str(result)
+            str(result),
+            "--plotfolder",
+            str(result),
         ]
     )
-    swat = xtgeo.surface_from_file(result / "all--mean_SWAT--20030101.gri")
-    assert swat.values.mean() == pytest.approx(0.892, abs=0.0001)
+    swat = xtgeo.surface_from_file(result / "all--mean_PORO.gri")
+    assert swat.values.mean() == pytest.approx(0.16467, abs=0.0001)
