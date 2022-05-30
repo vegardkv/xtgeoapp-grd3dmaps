@@ -117,7 +117,9 @@ def load_yaml(
     if "filters" in config:
         raise NotImplementedError("Keyword 'filters' is not supported by this action")
     if "superranges" in config.get("zonation", {}):
-        raise NotImplementedError("Keyword 'superranges' is not supported by this action")
+        raise NotImplementedError(
+            "Keyword 'superranges' is not supported by this action"
+        )
     return config
 
 
@@ -136,8 +138,8 @@ def extract_properties(
         if spec.lower_threshold is not None:
             for p in props:
                 p.values.mask[p.values < spec.lower_threshold] = True
-        # Check if any of the properties missing a date had date as part of the file stem,
-        # separated by a "--"
+        # Check if any of the properties missing a date had date as part of the file
+        # stem, separated by a "--"
         for p in props:
             if p.date is None and "--" in spec.source:
                 d = pathlib.Path(spec.source.split("--")[-1]).stem
@@ -152,7 +154,10 @@ def extract_properties(
     return properties
 
 
-def extract_zonations(zonation: Zonation, grid: xtgeo.Grid) -> List[Tuple[str, np.ndarray]]:
+def extract_zonations(
+    zonation: Zonation,
+    grid: xtgeo.Grid
+) -> List[Tuple[str, np.ndarray]]:
     zones = []
     actnum = grid.actnum_indices
     if zonation.zproperty is not None:
@@ -172,7 +177,9 @@ def extract_zonations(zonation: Zonation, grid: xtgeo.Grid) -> List[Tuple[str, n
     return zones
 
 
-def create_map_template(map_settings: _config.MapSettings) -> Union[xtgeo.RegularSurface, float]:
+def create_map_template(
+    map_settings: _config.MapSettings
+) -> Union[xtgeo.RegularSurface, float]:
     if map_settings.templatefile is not None:
         surf = xtgeo.surface_from_file(map_settings.templatefile)
         if surf.rotation != 0.0:

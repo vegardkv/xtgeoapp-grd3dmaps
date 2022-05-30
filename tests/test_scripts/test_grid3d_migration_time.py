@@ -32,4 +32,3 @@ def test_migration_time2(datatree):
     )
     assert (result / "lower_zone--MigrationTime.gri").is_file()
     assert not (result / "all--MigrationTime.gri").is_file()
-

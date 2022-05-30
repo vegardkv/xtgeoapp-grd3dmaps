@@ -5,8 +5,12 @@ import tempfile
 from typing import Optional
 import xtgeo
 
-from xtgeoapp_grd3dmaps.aggregate import grid3d_aggregate_map, _migration_time, _config, \
-    _parser
+from xtgeoapp_grd3dmaps.aggregate import (
+    grid3d_aggregate_map,
+    _migration_time,
+    _config,
+    _parser,
+)
 
 
 def calculate_migration_time_property(
@@ -21,7 +25,9 @@ def calculate_migration_time_property(
     ]
     grid = None if grid_file is None else xtgeo.grid_from_file(grid_file)
     properties = _parser.extract_properties(prop_spec, grid)
-    t_prop = _migration_time.generate_migration_time_property(properties, lower_threshold)
+    t_prop = _migration_time.generate_migration_time_property(
+        properties, lower_threshold
+    )
     return t_prop
 
 

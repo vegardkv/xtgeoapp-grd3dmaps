@@ -26,7 +26,13 @@ def write_map(xn, yn, map_, filename):
     masked_map = np.ma.array(map_)
     masked_map.mask = np.isnan(map_)
     surface = xtgeo.RegularSurface(
-        ncol=xn.size, nrow=yn.size, xinc=dx, yinc=dy, xori=xn[0], yori=yn[0], values=masked_map
+        ncol=xn.size,
+        nrow=yn.size,
+        xinc=dx,
+        yinc=dy,
+        xori=xn[0],
+        yori=yn[0],
+        values=masked_map,
     )
     surface.to_file(filename)
     return surface

@@ -12,7 +12,9 @@ def generate_example_property(example_grid):
     d_xy = np.sqrt(xyz[0].values ** 2 + xyz[1].values ** 2)[:, :, 0]
     values[:, :, 1] = np.exp(-(d_xy / 100) ** 2)
     values[:, :, 0] = np.exp(-(d_xy / 33) ** 2)
-    return xtgeo.GridProperty(example_grid, values=np.ma.masked_where(np.isnan(values), values))
+    return xtgeo.GridProperty(
+        example_grid, values=np.ma.masked_where(np.isnan(values), values)
+    )
 
 
 @pytest.fixture
@@ -115,7 +117,9 @@ def test_mean_method(default_args, example_property):
 def test_min_method(default_args, example_property):
     kwargs = {**default_args, 'method': AggregationMethod.MIN}
     _, _, maps = aggregate_maps(**kwargs)
-    npt.assert_allclose(maps[0][0], example_property.values[:, :, 0], atol=1e-12, rtol=0)
+    npt.assert_allclose(
+        maps[0][0], example_property.values[:, :, 0], atol=1e-12, rtol=0
+    )
 
 
 def test_weight_by_dz(default_args, example_property):

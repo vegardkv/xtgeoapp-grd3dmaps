@@ -26,12 +26,12 @@ def aggregate_maps(
         grid: The 3D grid
         grid_props: List of the grid properties to be aggregated
         inclusion_filters: List containing the grid cell filters. A filter is defined by
-            either a numpy array or `None`. If a numpy array is used, it must be a boolean
-            1D array representing which cells (among the active cells) that are to be
-            included. A `1` indicates inclusion. If `None` is provided, all of the grid
-            cells are included.
-        method: The aggregation method to apply for pixels that overlap more than one grid
-            cell in the xy-plane
+            either a numpy array or `None`. If a numpy array is used, it must be a
+            boolean 1D array representing which cells (among the active cells) that are
+            to be included. A `1` indicates inclusion. If `None` is provided, all of the
+            grid cells are included.
+        method: The aggregation method to apply for pixels that overlap more than one
+            grid cell in the xy-plane
         weight_by_dz: Weights cells by thickness (dz) when aggregating. Not relevant if
             method is MIN or MAX
 
@@ -52,10 +52,18 @@ def aggregate_maps(
     # Find cell boxes and pixel nodes
     boxes = _cell_boxes(grid, active)
     if isinstance(map_template, xtgeo.RegularSurface):
-        x_nodes = map_template.xori + map_template.xinc * np.arange(0, map_template.ncol, dtype=float)
-        y_nodes = map_template.yori + map_template.yinc * np.arange(0, map_template.nrow, dtype=float)
+        x_nodes = (
+            map_template.xori
+            + map_template.xinc * np.arange(0, map_template.ncol, dtype=float)
+        )
+        y_nodes = (
+            map_template.yori
+            + map_template.yinc * np.arange(0, map_template.nrow, dtype=float)
+        )
     else:
-        x_nodes, y_nodes = _derive_map_nodes(boxes, pixel_to_cell_size_ratio=map_template)
+        x_nodes, y_nodes = _derive_map_nodes(
+            boxes, pixel_to_cell_size_ratio=map_template
+        )
     # Find connections
     connections = _connect_grid_and_map(
         x_nodes,
