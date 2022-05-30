@@ -79,6 +79,7 @@ def generate_maps(
         properties,
         [f[1] for f in _filters],
         computesettings.aggregation,
+        computesettings.weight_by_dz,
     )
     assert len(_filters) == len(p_maps)
     for filter_, f_maps in zip(_filters, p_maps):

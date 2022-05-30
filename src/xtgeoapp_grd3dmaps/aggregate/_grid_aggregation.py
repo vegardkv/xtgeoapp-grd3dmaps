@@ -14,6 +14,7 @@ def aggregate_maps(
     grid_props: List[xtgeo.GridProperty],
     inclusion_filters: List[Optional[np.ndarray]],
     method: AggregationMethod,
+    weight_by_dz: bool,
 ) -> Tuple[np.ndarray, np.ndarray, List[List[np.ndarray]]]:
     """
     Aggregate multiple grid properties, using multiple grid cell filters, to 2D maps.
@@ -31,6 +32,8 @@ def aggregate_maps(
             cells are included.
         method: The aggregation method to apply for pixels that overlap more than one grid
             cell in the xy-plane
+        weight_by_dz: Weights cells by thickness (dz) when aggregating. Not relevant if
+            method is MIN or MAX
 
     Returns:
         Doubly nested list of maps. The first index corresponds to `ìnclusion_filters`,
@@ -39,8 +42,12 @@ def aggregate_maps(
     # Determine cells where properties are always masked
     active = grid.actnum_array.flatten().astype(bool)
     props = [p.values1d[active] for p in grid_props]
-    props, active, inclusion_filters = _remove_where_all_props_are_masked(
-        props, active, inclusion_filters
+    if weight_by_dz:
+        weights = grid.get_dz().values1d[active]
+    else:
+        weights = None
+    props, active, inclusion_filters, weights = _remove_where_all_props_are_masked(
+        props, active, inclusion_filters, weights
     )
     # Find cell boxes and pixel nodes
     boxes = _cell_boxes(grid, active)
@@ -68,6 +75,7 @@ def aggregate_maps(
             results[-1].append(_property_to_map(
                 (rows0, cols0),
                 prop,
+                weights,
                 x_nodes.size,
                 y_nodes.size,
                 method,
@@ -79,6 +87,7 @@ def _remove_where_all_props_are_masked(
     props,
     active,
     inclusion_filters,
+    weights,
 ):
     all_masked = np.all([p.mask for p in props], axis=0)
     active[active] = ~all_masked
@@ -87,7 +96,9 @@ def _remove_where_all_props_are_masked(
         None if inc is None else inc[~all_masked]
         for inc in inclusion_filters
     ]
-    return props, active, inclusion_filters
+    if weights is not None:
+        weights = weights[~all_masked]
+    return props, active, inclusion_filters, weights
 
 
 def _derive_map_nodes(boxes, pixel_to_cell_size_ratio):
@@ -184,18 +195,24 @@ def _cell_boxes(grid: xtgeo.Grid, active_cells):
 def _property_to_map(
     connections: Tuple[np.ndarray, np.ndarray],
     prop: np.ndarray,
+    weights: Optional[np.ndarray],
     nx: int,
     ny: int,
     method: AggregationMethod,
 ):
     rows, cols = connections
     assert rows.shape == cols.shape
+    assert weights is None or weights.shape == prop.shape
+    if weights is not None:
+        assert method in [AggregationMethod.MEAN, AggregationMethod.SUM]
     data = prop[cols]
+    col_weights = np.ones_like(data) if weights is None else weights[cols]
     if data.mask.any():
         invalid = data.mask
         rows = rows[~invalid]
         cols = cols[~invalid]
         data = data[~invalid]
+        col_weights = col_weights[~invalid]
 
     if data.size == 0:
         return np.full((nx, ny), fill_value=np.nan)
@@ -209,27 +226,30 @@ def _property_to_map(
         shift = 0.0
     else:
         raise NotImplementedError
-    sarr = scipy.sparse.coo_matrix(
+
+    p_arr = scipy.sparse.coo_matrix(
         (data - shift, (rows, cols)), shape=shape
     ).tocsc()
-    count = scipy.sparse.coo_matrix(
-        (np.ones_like(data), (rows, cols)), shape=shape
-    ).tocsc().sum(axis=1)
+    w_arr = scipy.sparse.coo_matrix(
+        (col_weights, (rows, cols)), shape=shape
+    ).tocsc()
+    total_weight = w_arr.sum(axis=1)
     # Make sure to shift data to avoid
     if method == AggregationMethod.MAX:
-        res = sarr.max(axis=1).toarray()
+        res = p_arr.max(axis=1).toarray()
     elif method == AggregationMethod.MIN:
-        res = sarr.min(axis=1).toarray()
+        res = p_arr.min(axis=1).toarray()
     elif method == AggregationMethod.MEAN:
-        div = np.where(count > 0, count, 1)  # Avoid division by zero
-        res = sarr.sum(axis=1) / div
+        div = np.where(total_weight > 0, total_weight, 1)  # Avoid division by zero
+        res = (p_arr.multiply(w_arr)).sum(axis=1) / div
         res = np.asarray(res)
     elif method == AggregationMethod.SUM:
-        res = np.asarray(sarr.sum(axis=1))
+        # res = np.asarray(sarr.sum(axis=1))
+        res = np.asarray((p_arr.multiply(w_arr)).sum(axis=1))
     else:
         raise NotImplementedError
-    count = np.array(count).flatten()
+    total_weight = np.array(total_weight).flatten()
     res = res.flatten() + shift
-    res[count == 0] = np.nan
+    res[total_weight == 0] = np.nan
     res = res.reshape(nx, ny)
     return res

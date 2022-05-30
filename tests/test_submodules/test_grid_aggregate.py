@@ -49,6 +49,7 @@ def default_args(example_grid, example_property):
         grid_props=[example_property],
         inclusion_filters=[None],
         method=AggregationMethod.MAX,
+        weight_by_dz=False,
     )
 
 
@@ -115,3 +116,13 @@ def test_min_method(default_args, example_property):
     kwargs = {**default_args, 'method': AggregationMethod.MIN}
     _, _, maps = aggregate_maps(**kwargs)
     npt.assert_allclose(maps[0][0], example_property.values[:, :, 0], atol=1e-12, rtol=0)
+
+
+def test_weight_by_dz(default_args, example_property):
+    kwargs1 = {**default_args, 'method': AggregationMethod.MEAN, 'weight_by_dz': True}
+    _, _, maps1 = aggregate_maps(**kwargs1)
+    map_1 = maps1[0][0]
+    kwargs2 = {**default_args, 'method': AggregationMethod.SUM, 'weight_by_dz': True}
+    _, _, maps2 = aggregate_maps(**kwargs2)
+    map_2 = maps2[0][0]
+    npt.assert_array_less(map_1, map_2 + 1e-12)

@@ -59,6 +59,7 @@ class Zonation:
 @dataclass
 class ComputeSettings:
     aggregation: AggregationMethod = AggregationMethod.MAX
+    weight_by_dz: bool = False
     all: bool = True
     zone: bool = True
 

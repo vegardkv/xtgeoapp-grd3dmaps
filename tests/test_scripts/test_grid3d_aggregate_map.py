@@ -65,3 +65,18 @@ def test_aggregated_map4(datatree):
     assert (result / "all--max_SWAT--20030101.gri").is_file()
     assert (result / "zone2--max_SWAT--20030101.gri").is_file()
     assert (result / "zone3--max_SWAT--20030101.gri").is_file()
+
+
+def test_aggregated_map5(datatree):
+    result = datatree / "aggregate5_folder"
+    result.mkdir(parents=True)
+    grid3d_aggregate_map.main(
+        [
+            "--config",
+            "tests/yaml/aggregate5.yml",
+            "--mapfolder",
+            str(result)
+        ]
+    )
+    swat = xtgeo.surface_from_file(result / "all--mean_SWAT--20030101.gri")
+    assert swat.values.mean() == pytest.approx(0.892, abs=0.0001)
