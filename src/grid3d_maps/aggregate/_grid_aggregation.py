@@ -355,6 +355,9 @@ def _aggregate_sparse_data(
         # res = np.asarray(sarr.sum(axis=1))
         res = np.asarray((values.multiply(weight)).sum(axis=1))
     elif method == AggregationMethod.DISTRIBUTE:
+        # This method distributes the values from a grid cell to all the pixels that
+        # overlap with this grid cell. This is especially relevant for maps where the
+        # total sum needs to be preserved, e.g. when aggregating mass.
         w_csr = weight.tocsr()
         col_sum = np.asarray(w_csr.sum(axis=0))
         div = np.where(col_sum > 0, col_sum, 1)
