@@ -316,7 +316,11 @@ def _property_to_map(
         shift = data.min() - 1
     elif method == AggregationMethod.MIN:
         shift = data.max() + 1
-    elif method in (AggregationMethod.MEAN, AggregationMethod.SUM):
+    elif method in (
+        AggregationMethod.MEAN,
+        AggregationMethod.SUM,
+        AggregationMethod.DISTRIBUTE
+    ):
         shift = 0.0
     else:
         raise NotImplementedError
@@ -350,6 +354,12 @@ def _aggregate_sparse_data(
     elif method == AggregationMethod.SUM:
         # res = np.asarray(sarr.sum(axis=1))
         res = np.asarray((values.multiply(weight)).sum(axis=1))
+    elif method == AggregationMethod.DISTRIBUTE:
+        w_csr = weight.tocsr()
+        col_sum = np.asarray(w_csr.sum(axis=0))
+        div = np.where(col_sum > 0, col_sum, 1)
+        w_csr = w_csr / div
+        res = np.asarray((values.multiply(w_csr.tocsc())).sum(axis=1))
     else:
         raise NotImplementedError
     res = res.flatten()

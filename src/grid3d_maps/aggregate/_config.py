@@ -19,6 +19,7 @@ class AggregationMethod(Enum):
     MIN = "min"
     MEAN = "mean"
     SUM = "sum"
+    DISTRIBUTE = "distribute"
 
 
 @dataclass

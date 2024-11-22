@@ -126,6 +126,16 @@ def test_min_method(default_args, example_property):
     )
 
 
+def test_distribute_method(default_args, example_property):
+    kwargs = {
+        **default_args,
+        "method": AggregationMethod.DISTRIBUTE,
+        "map_template": 4.0
+    }
+    _, _, maps = aggregate_maps(**kwargs)
+    npt.assert_almost_equal(maps[0][0].sum(), example_property.values.sum())
+
+
 def test_weight_by_dz(default_args, example_property):
     kwargs1 = {**default_args, "method": AggregationMethod.MEAN, "weight_by_dz": True}
     _, _, maps1 = aggregate_maps(**kwargs1)
