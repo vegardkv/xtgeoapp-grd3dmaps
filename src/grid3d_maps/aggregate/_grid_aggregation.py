@@ -90,7 +90,7 @@ class _ConnectionData:
 
     x_nodes: np.ndarray
     y_nodes: np.ndarray
-    node_indices: np.ndarray
+    node_indices: np.ndarray  # Rename to "pixel"
     grid_indices: np.ndarray
 
 
@@ -131,6 +131,8 @@ def _derive_map_nodes(footprints_x, footprints_y, pixel_to_cell_size_ratio):
 
 
 def _extract_all_overlaps(i_starts, i_range, j_starts, j_range):
+    # TODO: remove out-of-bounds data (?)
+    #  NB! The input is strictly aligned with the number of cells, but the output is not
     ij_pairs = []
     indices = []
     for ni in range(1, i_range.max() + 1):
@@ -143,21 +145,16 @@ def _extract_all_overlaps(i_starts, i_range, j_starts, j_range):
             for qi in range(ni):
                 for qj in range(nj):
                     ij_pairs.append(
-                        np.column_stack(
-                            (
-                                i0 + qi,
-                                j0 + qj,
-                            )
-                        )
+                        np.column_stack((i0 + qi, j0 + qj))
                     )
-            indices.append(
+            indices.append(  # clearer with np.repeat instead of kron? or is that incorrect? or perhaps just append alongside ij_pairs.append
                 np.kron(np.ones(ni * nj, dtype=int), np.argwhere(ix).flatten())
             )
     return np.vstack(ij_pairs), np.hstack(indices)
 
 
 def _connect_grid_and_map(
-    x_nodes,
+    x_nodes,  # TODO: rename to pixel bounds?
     y_nodes,
     footprints_x,
     footprints_y,
@@ -167,20 +164,35 @@ def _connect_grid_and_map(
     pair, the first referring to pixel indices and the second to corresponding grid
     indices. A grid node may be mapped to multiple pixels, and vice verse.
     """
+    # NB! This assumes x_nodes and y_nodes typically comes from a xtgeo.RegularSurface.
+    # Are we sure that this is the assumed convention also for the map viewer?
     box_x = _footprint_bounds(footprints_x)
     box_y = _footprint_bounds(footprints_y)
     i0, i_range = _find_overlapped_nodes(x_nodes, box_x[0], box_x[1])
     j0, j_range = _find_overlapped_nodes(y_nodes, box_y[0], box_y[1])
     pixels_ij, grd_ix = _extract_all_overlaps(i0, i_range, j0, j_range)
-    map_ix = np.ravel_multi_index(pixels_ij.T, (x_nodes.size, y_nodes.size))
-    box_conn_data = _ConnectionData(x_nodes, y_nodes, map_ix, grd_ix)
+    # subtract 1 from size to conform to xtgeo.RegularSurface convention
+    # TODO: this is not working as intended. I think _find_overlapping_nodes is ok, but _extract_all_overlaps might not be updated?
+    pixels_ix = np.ravel_multi_index(pixels_ij.T, (x_nodes.size - 1, y_nodes.size - 1))
+    box_conn_data = _ConnectionData(x_nodes, y_nodes, pixels_ix, grd_ix)
     return _filter_on_footprint(box_conn_data, footprints_x, footprints_y)
 
 
 def _find_overlapped_nodes(nodes, cell_lower, cell_upper):
     i0 = np.searchsorted(nodes, cell_lower)
     i1 = np.searchsorted(nodes, cell_upper)
-    lengths = i1 - i0
+    lengths = i1 - i0 + 1
+    # Cells outside of nodes have their length set to 0
+    lengths[(i0 == 0) & (i1 == 0)] = 0
+    lengths[(i0 == cell_lower.size) & (i1 == cell_upper.size)] = 0
+
+    # "Shave" the edges
+    lengths[i0 == cell_lower.size] -= 1
+    lengths[i0 == 0] -= 1
+    # Remap from nodes to interval
+    i0 -= 1
+    i0[i0 == -1] = 0
+
     return i0, lengths
 
 
@@ -213,6 +225,22 @@ def _filter_on_footprint(conn_data: _ConnectionData, footprint_x, footprint_y):
     nodes_xx = nodes_xx.flatten()
     nodes_yy = nodes_yy.flatten()
     # N - number of pixel-grid cell pairs
+    # Should instead figure out if the pixel square overlaps the quad, instead of finding if the quad overlaps the pixel
+    # That is: if two of the four pixel corners are on opposite side of the quad (inside/outside), we have overlap
+    node_in_cell = np.array([
+        _point_in_quadrangle(
+            quad_x=footprint_x[conn_data.grid_indices],  # N x 4
+            quad_y=footprint_y[conn_data.grid_indices],  # N x 4
+            point_x=nodes_xx[conn_data.node_indices + i],  # N
+            point_y=nodes_yy[conn_data.node_indices + j],  # N
+        )
+        for i in range(2)
+        for j in range(2)
+    ])
+    all_inside = np.all(node_in_cell, axis=0)
+    all_outside = np.all(~node_in_cell, axis=0)
+    overlap = ~(all_inside | all_outside)
+
     pt_in_cell = _point_in_quadrangle(
         quad_x=footprint_x[conn_data.grid_indices],  # N x 4
         quad_y=footprint_y[conn_data.grid_indices],  # N x 4
@@ -221,12 +249,12 @@ def _filter_on_footprint(conn_data: _ConnectionData, footprint_x, footprint_y):
     )
     return dataclasses.replace(
         conn_data,
-        grid_indices=conn_data.grid_indices[pt_in_cell],
-        node_indices=conn_data.node_indices[pt_in_cell],
+        grid_indices=conn_data.grid_indices[overlap],
+        node_indices=conn_data.node_indices[overlap],
     )
 
 
-def _point_in_quadrangle(
+def _point_in_quadrangle(  # TODO: rename to "quad", since the corners are not necessarily 90 deg
     quad_x: np.ndarray,  # N x 4
     quad_y: np.ndarray,  # N x 4
     point_x: np.ndarray,  # N
