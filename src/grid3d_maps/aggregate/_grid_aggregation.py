@@ -125,14 +125,12 @@ def _derive_map_nodes(footprints_x, footprints_y, pixel_to_cell_size_ratio):
     box_y = _footprint_bounds(footprints_y)
     res = np.mean([np.mean(box_x[1] - box_x[0]), np.mean(box_y[1] - box_y[0])])
     res /= pixel_to_cell_size_ratio
-    x_nodes = np.arange(np.min(box_x) + res / 2, np.max(box_x) - res / 2 + 1e-12, res)
-    y_nodes = np.arange(np.min(box_y) + res / 2, np.max(box_y) - res / 2 + 1e-12, res)
+    x_nodes = np.arange(np.min(box_x), np.max(box_x) + 1e-12, res)
+    y_nodes = np.arange(np.min(box_y), np.max(box_y) + 1e-12, res)
     return x_nodes, y_nodes
 
 
 def _extract_all_overlaps(i_starts, i_range, j_starts, j_range):
-    # TODO: remove out-of-bounds data (?)
-    #  NB! The input is strictly aligned with the number of cells, but the output is not
     ij_pairs = []
     indices = []
     for ni in range(1, i_range.max() + 1):
@@ -154,7 +152,7 @@ def _extract_all_overlaps(i_starts, i_range, j_starts, j_range):
 
 
 def _connect_grid_and_map(
-    x_nodes,  # TODO: rename to pixel bounds?
+    x_nodes,
     y_nodes,
     footprints_x,
     footprints_y,
@@ -179,16 +177,16 @@ def _connect_grid_and_map(
 
 
 def _find_overlapped_nodes(nodes, cell_lower, cell_upper):
-    i0 = np.searchsorted(nodes, cell_lower)
+    i0 = np.searchsorted(nodes, cell_lower, side="right")
     i1 = np.searchsorted(nodes, cell_upper)
     lengths = i1 - i0 + 1
     # Cells outside of nodes have their length set to 0
-    lengths[(i0 == 0) & (i1 == 0)] = 0
-    lengths[(i0 == cell_lower.size) & (i1 == cell_upper.size)] = 0
-
-    # "Shave" the edges
-    lengths[i0 == cell_lower.size] -= 1
+    # Cells start starts or ends outside of nodes have their lengths reduced
     lengths[i0 == 0] -= 1
+    lengths[(i0 == 0) & (i1 == 0)] = 0
+    lengths[i1 == nodes.size] -= 1
+    lengths[(i0 == nodes.size) & (i1 == nodes.size)] = 0
+
     # Remap from nodes to interval
     i0 -= 1
     i0[i0 == -1] = 0
@@ -219,34 +217,44 @@ def _filter_on_footprint(conn_data: _ConnectionData, footprint_x, footprint_y):
     Filters pixel-grid cell connections based on the actual polygonal footprint of a
     grid cell, not only the bounding box around the grid cell.
     """
-    nodes_xx, nodes_yy = np.meshgrid(
-        conn_data.x_nodes, conn_data.y_nodes, indexing="ij"
+    # Find bounds of the pixels (lo/hi)  TODO: move this to methods on _ConnectionData
+    pixel_lo_xx, pixel_lo_yy = np.meshgrid(
+        conn_data.x_nodes[:-1], conn_data.y_nodes[:-1], indexing="ij"
     )
-    nodes_xx = nodes_xx.flatten()
-    nodes_yy = nodes_yy.flatten()
-    # N - number of pixel-grid cell pairs
-    # Should instead figure out if the pixel square overlaps the quad, instead of finding if the quad overlaps the pixel
-    # That is: if two of the four pixel corners are on opposite side of the quad (inside/outside), we have overlap
-    node_in_cell = np.array([
-        _point_in_quadrangle(
+    pixel_lo_x = pixel_lo_xx.flatten()
+    pixel_lo_y = pixel_lo_yy.flatten()
+
+    pixel_hi_xx, pixel_hi_yy = np.meshgrid(
+        conn_data.x_nodes[1:], conn_data.y_nodes[1:], indexing="ij"
+    )
+    pixel_hi_x = pixel_hi_xx.flatten()
+    pixel_hi_y = pixel_hi_yy.flatten()
+
+    # Find which pixels entirely envelops grid cells
+    pixel_envelops_cell = np.array(
+        (pixel_lo_x[conn_data.node_indices] <= footprint_x[conn_data.grid_indices].min(axis=1))
+        & (footprint_x[conn_data.grid_indices].max(axis=1) <= pixel_hi_x[conn_data.node_indices])
+        & (pixel_lo_y[conn_data.node_indices] <= footprint_y[conn_data.grid_indices].min(axis=1))
+        & (footprint_y[conn_data.grid_indices].max(axis=1) <= pixel_hi_y[conn_data.node_indices])
+    )
+
+    # Find which cells that intersect with pixels. Since the pixels are aligned with the
+    # axes, this can be done by checking each corner of the pixel for containment in the
+    # grid cell
+    cell_intersects_pixel = np.array([
+        _point_in_quad(
             quad_x=footprint_x[conn_data.grid_indices],  # N x 4
             quad_y=footprint_y[conn_data.grid_indices],  # N x 4
-            point_x=nodes_xx[conn_data.node_indices + i],  # N
-            point_y=nodes_yy[conn_data.node_indices + j],  # N
+            point_x=px[conn_data.node_indices],  # N
+            point_y=py[conn_data.node_indices],  # N
         )
-        for i in range(2)
-        for j in range(2)
+        for px in [pixel_lo_x, pixel_hi_x]
+        for py in [pixel_lo_y, pixel_hi_y]
     ])
-    all_inside = np.all(node_in_cell, axis=0)
-    all_outside = np.all(~node_in_cell, axis=0)
-    overlap = ~(all_inside | all_outside)
 
-    pt_in_cell = _point_in_quadrangle(
-        quad_x=footprint_x[conn_data.grid_indices],  # N x 4
-        quad_y=footprint_y[conn_data.grid_indices],  # N x 4
-        point_x=nodes_xx[conn_data.node_indices],  # N
-        point_y=nodes_yy[conn_data.node_indices],  # N
-    )
+    # The two checks above are sufficient to cover all cases in which pixels and grid
+    # cells overlap
+    overlap = pixel_envelops_cell | cell_intersects_pixel.any(axis=0)
     return dataclasses.replace(
         conn_data,
         grid_indices=conn_data.grid_indices[overlap],
@@ -254,7 +262,7 @@ def _filter_on_footprint(conn_data: _ConnectionData, footprint_x, footprint_y):
     )
 
 
-def _point_in_quadrangle(  # TODO: rename to "quad", since the corners are not necessarily 90 deg
+def _point_in_quad(
     quad_x: np.ndarray,  # N x 4
     quad_y: np.ndarray,  # N x 4
     point_x: np.ndarray,  # N
@@ -336,7 +344,7 @@ def _property_to_map(
         data = data[~invalid]
         weights = weights[~invalid]
 
-    nx, ny = conn_data.x_nodes.size, conn_data.y_nodes.size
+    nx, ny = conn_data.x_nodes.size - 1, conn_data.y_nodes.size - 1
     if data.size == 0:
         return np.full((nx, ny), fill_value=np.nan)
     # Calculate temporary data shift to avoid unintended deletion of data by tocsc:
